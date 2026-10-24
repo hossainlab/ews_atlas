@@ -1,0 +1,39 @@
+# Local (CPU) analysis environment for EWSAtlas.
+#   conda env create -f src/envs/environment-local.yml
+#   conda activate ewsatlas && pip install -e .
+#
+# Python is floored at 3.12 because anndata >= 0.13 requires it; a 3.11 base
+# resolves to an older anndata and fails on the h5ad written here.
+#
+# Two packages are deliberately absent:
+#   scikit-image  — needed only by scanpy's automatic scrublet threshold. The
+#                   pipeline supplies an explicit threshold instead
+#                   (config.qc.doublet_threshold), so the dependency is dropped.
+#   cell2location — imports pyro.infer.autoguide.utils.deep_getattr, removed in
+#                   current pyro; it breaks the image build and is not used.
+name: ewsatlas
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  - pip
+  - numpy>=2.0
+  - scipy>=1.14
+  - pandas>=2.2
+  - scikit-learn>=1.5
+  - statsmodels>=0.14
+  - h5py>=3.11
+  - pyarrow>=16
+  - python-igraph>=0.11
+  - leidenalg>=0.12
+  - numba>=0.60
+  - pytest>=8
+  - pip:
+      - anndata>=0.13.4
+      - scanpy>=1.12.4
+      - scvi-tools>=1.5.1
+      - harmonypy>=0.2.0
+      - scib-metrics>=0.5.7
+      - infercnvpy>=0.6.1
+      - modal>=1.6

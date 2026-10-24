@@ -1,0 +1,14 @@
+claim,full_atlas,without_waltner,unit,verdict
+cells,138353.0,63465.0,n,by construction
+samples,65.0,53.0,n,by construction
+patients,38.0,33.0,n,by construction
+malignant cells,97586.0,28888.0,n,by construction
+copy-number AUC (median per sample),0.712,0.724,AUC,holds
+samples scored above 0.7 AUC,23.0,20.0,n of scored,holds
+metaprograms recovered,28.0,20.0,n,holds
+metaprograms confined to one study,15.0,8.0,n,"holds, see note"
+CD276: columns with a positive margin,9.0,9.0,of 10 normal classes,holds
+CD99: columns with a positive margin,10.0,8.0,of 10 normal classes,changes
+IL1RAP: columns with a positive margin,9.0,9.0,of 10 normal classes,holds
+NT5E: columns with a positive margin,4.0,4.0,of 10 normal classes,holds
+STEAP1: columns with a positive margin,9.0,9.0,of 10 normal classes,holds

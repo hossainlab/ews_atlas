@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use EWSAtlas, please cite both the preprint and the Zenodo deposit."
+title: "EWSAtlas: a harmonized single-cell reference for Ewing sarcoma"
+abstract: >-
+  Integrated single-cell and single-nucleus atlas of Ewing sarcoma assembled from
+  six public studies (138,353 cells, 65 samples, 38 patients), with a
+  copy-number-validated malignant compartment and a reference-mapping model.
+version: "5.0"
+date-released: "TO BE COMPLETED"
+license: "TO BE CHOSEN"
+authors:
+  - family-names: "TO BE COMPLETED"
+    given-names: "TO BE COMPLETED"
+    orcid: ""
+keywords:
+  - Ewing sarcoma
+  - single-cell RNA sequencing
+  - atlas
+  - data integration

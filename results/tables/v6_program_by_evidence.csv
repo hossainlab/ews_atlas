@@ -1,0 +1,5 @@
+malignant_evidence,score_MP28,score_MP24,score_MP1,score_MP3,score_MP7,fusion_clean
+cna_only,0.037,0.503,0.012,0.347,0.515,-0.334
+marker_and_cna,0.223,0.065,0.213,0.338,0.3,0.023
+marker_only_cna_negative,0.159,0.056,0.059,0.217,0.102,0.026
+marker_only_cna_unassessed,0.053,0.046,0.098,0.154,0.026,0.004

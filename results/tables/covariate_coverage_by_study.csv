@@ -1,0 +1,7 @@
+Study,Sex,Age,Fusion_Status,Fusion_Type,Primary_Metastasis,Disease_Stage,Sample_Type,Tissue,Body_Site,Tissue_Location,Sort,disease_timing,is_xenograft,Assay,Platform
+Aynaud_2020,0,0,0,0,0,0,100,0,0,0,0,0,0,100,100
+Cillo_2022,0,0,0,0,0,100,100,0,0,0,100,0,0,100,100
+Goodspeed_2025,0,0,0,0,0,0,0,0,0,0,0,0,0,100,100
+Mao_2024,0,0,0,0,0,0,100,100,0,0,0,0,0,100,100
+Visser_2023,0,0,0,97,0,0,97,0,94,0,97,0,0,100,100
+Waltner_2025,100,100,90,0,100,100,100,0,0,100,0,100,100,100,100

@@ -1,21 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ewsatlas"
-version = "0.1.0"
-description = "Harmonized single-cell transcriptomics atlas of Ewing Sarcoma"
+version = "0.5.0.dev0"
+description = "Harmonized single-cell reference atlas for EWSR1::FLI1 Ewing sarcoma"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
+license = {text = "MIT"}
 dependencies = [
-    "anndata>=0.10.0",
-    "cellhint>=1.0.0",
-    "harmonypy>=0.0.9",
-    "infercnvpy>=0.4.3",
-    "matplotlib>=3.8.0",
-    "numpy>=1.26.0",
-    "pandas>=2.0.0",
-    "pyyaml>=6.0",
-    "scanpy>=1.11.5",
-    "scipy>=1.12.0",
-    "scib-metrics>=0.4.1",
-    "scrublet>=0.2.3",
-    "scvi-tools>=1.4.2",
+  # Lower bounds are the versions this pipeline was developed and tested against;
+  # exact resolved versions live in src/envs/requirements-lock-local.txt and in
+  # every logs/run_*.json manifest.
+  "anndata>=0.13.4",      # >=0.13 needs python>=3.12 — the reason for the floor
+  "scanpy>=1.12.4",
+  "scvi-tools>=1.5.1",
+  "torch>=2.5.1",
+  "harmonypy>=0.2.0",
+  "scib-metrics>=0.5.7",
+  "infercnvpy>=0.6.1",
+  "leidenalg>=0.12.0",
+  "igraph>=0.11",
+  "numpy>=2.0",
+  "scipy>=1.14",
+  "pandas>=2.2",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+  "h5py>=3.11",
+  "pyarrow>=16",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+gpu = ["modal>=1.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ewsatlas*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: requires a built atlas object or raw deposits"]

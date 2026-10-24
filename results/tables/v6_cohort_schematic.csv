@@ -1,0 +1,7 @@
+study,cells,samples,patients,assays,materials
+Waltner_2025,74888,12,5,10x_snRNA,O-PDX;patient_tumor
+Mao_2024,15394,4,2,10x_scRNA,normal_tissue;patient_tumor
+Aynaud_2020,14504,5,5,10x_scRNA,O-PDX
+Cillo_2022,14353,5,4,10x_scRNA,PBMC;patient_tumor
+Goodspeed_2025,12639,15,11,10x_scRNA,CTC;patient_tumor
+Visser_2023,6575,24,11,CELseq2_scRNA,patient_tumor

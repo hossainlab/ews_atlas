@@ -1,0 +1,55 @@
+{
+  "title": "EWSAtlas v5: a harmonized single-cell and single-nucleus reference for Ewing sarcoma",
+  "upload_type": "dataset",
+  "description": "Integrated single-cell/single-nucleus atlas of Ewing sarcoma assembled from six public studies: 138,353 cells, 16,622 genes, 65 samples, 38 patients. Includes the released analysis object, a CELLxGENE-schema deposit object, the trained scVI model for scArches reference mapping, and all result tables. SEE docs/14_deposition.md - creators, license and related identifiers must be completed by the depositors before upload.",
+  "creators": [
+    {
+      "name": "TO BE COMPLETED",
+      "affiliation": "TO BE COMPLETED",
+      "orcid": ""
+    }
+  ],
+  "keywords": [
+    "Ewing sarcoma",
+    "single-cell RNA-seq",
+    "single-nucleus RNA-seq",
+    "atlas",
+    "data integration",
+    "scVI",
+    "tumour microenvironment",
+    "EWSR1-FLI1"
+  ],
+  "license": "TO BE CHOSEN (cc-by-4.0 is the usual choice for a derived atlas)",
+  "related_identifiers": [
+    {
+      "identifier": "10.1016/j.celrep.2020.01.049",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.1158/1078-0432.CCR-22-1471",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.1158/1078-0432.CCR-24-2040",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.1016/j.isci.2024.110921",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.1158/2767-9764.CRC-23-0027",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.7554/eLife.109124",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    }
+  ]
+}

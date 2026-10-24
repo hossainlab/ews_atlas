@@ -1,0 +1,7 @@
+{
+ "same_study_knn": 0.7489993367915134,
+ "expected_random": 0.33772272725465824,
+ "expected_given_composition": 0.4979300760591155,
+ "malignant_agreement_with_depositors": 0.9329682997118156,
+ "n_depositor_labelled": 69400
+}

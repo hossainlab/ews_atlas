@@ -1,0 +1,16 @@
+cell_type,cells,observed,expected_given_composition,n_studies
+Ewing_sarcoma,83814,0.754,0.556,6
+T_cell,14759,0.639,0.22,6
+Ewing_proliferating,9991,0.809,0.512,6
+Monocyte_Macrophage,8943,0.76,0.361,6
+Fibroblast_CAF,6063,0.88,0.474,6
+Endothelial,4109,0.772,0.363,5
+Unassigned,2809,0.899,0.468,6
+Urothelial,2453,0.952,0.984,5
+B_cell,1679,0.82,0.573,6
+NK,1267,0.783,0.394,5
+DC,1137,0.675,0.295,6
+Mast,715,0.968,0.911,3
+pDC,307,0.711,0.418,6
+Platelet,218,0.98,0.973,2
+Plasma,89,0.533,0.24,5

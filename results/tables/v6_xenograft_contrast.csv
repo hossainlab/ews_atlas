@@ -1,0 +1,6 @@
+quantity,mean_pdx_minus_tumor,n_pairs,all_same_direction,wilcoxon_p
+score_MP28,0.0134,4,False,0.625
+score_MP24,-0.0698,4,False,0.375
+score_MP1,0.1308,4,False,0.375
+score_MP3,0.0828,4,False,0.875
+fusion_clean,0.0177,4,False,0.625

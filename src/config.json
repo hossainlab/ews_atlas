@@ -1,0 +1,174 @@
+{
+ "_comment": "Single source of truth for every EWSAtlas build parameter. Scripts in src/ read ONLY from here.",
+ "seed": 0,
+ "studies": [
+  "Aynaud_2020",
+  "Cillo_2022",
+  "Goodspeed_2025",
+  "Mao_2024",
+  "Visser_2023",
+  "Waltner_2025"
+ ],
+ "qc": {
+  "gene_floor_by_assay": {
+   "10x_scRNA": 200,
+   "CELseq2_scRNA": 200,
+   "10x_snRNA": 100
+  },
+  "_gene_floor_rationale": "Assay-aware, not uniform: nuclei carry ~10-20% of a cell's RNA and are depleted of cytoplasmic/mito transcripts, so one integer imposes different effective stringency per assay and preferentially discards the smallest nuclei - biasing survivors toward large, transcriptionally active, cycling malignant cells.",
+  "library_gate_median_genes_below_floor": true,
+  "_library_gate_rationale": "Exclude a whole library whose MEDIAN detected genes falls below its assay floor. A per-cell floor and a per-sample MAD cannot catch a uniformly failed library - the MAD is computed within that library, so a bad library looks internally consistent. Measured case: ScPCA library SCPCL001111 has median 44 genes / 76 UMIs and 98.5% of nuclei under 200 genes; ScPCA's own pipeline retained 89 of 6,139 cells (1.4%). Every other library has median >=237.",
+  "mito_cap_pct_by_assay": {
+   "10x_scRNA": 30.0,
+   "CELseq2_scRNA": 40.0,
+   "10x_snRNA": 10.0
+  },
+  "_mito_cap_rationale": "Same logic as the gene floor: the CRITERION is the per-sample MAD on %MT (uniform everywhere); the absolute cap is a per-assay backstop reflecting each assay's biology. Measured here: the four droplet whole-cell studies sit at median 2.8-3.9% MT with p95 9-14%, so 30% is effectively non-binding for them (a 20% cap would cost 0-70 cells). Nuclei are DEPLETED of mitochondrial transcripts (median 1.99%, p95 10.2% across the 85,944 nuclei that pass the library gate), so a 30% cap is lenient exactly where it should be strict - a nucleus above 10% MT carries cytoplasmic/ambient carryover, which inflates apparent stromal signal in malignant nuclei and is the same confounder as a doublet. The 10% cap costs 4,441 of 85,944 nuclei (5.2%) against 366 (0.4%) at 30%. CEL-seq2 plates run hotter once ERCC spike-ins are removed (per-plate medians 13-27%), so a 30% cap would cut around the median of several plates - composition bias by the same argument; 40% is the backstop there.",
+  "mad_n": 5,
+  "mad_metrics": [
+   "log1p_total_counts",
+   "log1p_n_genes",
+   "pct_counts_mt"
+  ],
+  "doublet_method": "scrublet",
+  "doublet_threshold": 0.25,
+  "doublet_call_method": "expected_rate",
+  "doublet_rate_per_1k_cells": 0.008,
+  "_doublet_rate_rationale": "10x multiplet rate is ~0.8% per 1,000 cells recovered, so the expected doublet fraction scales with library size (7,000 nuclei -> ~5.6%; 14,000 -> ~11%). A single score threshold ignores that. Measured on the Waltner arm, a fixed 0.25 cut removed 2.9% of nuclei while ScPCA's independent scDblFinder flagged 9.9% of the SAME retained nuclei (score Spearman rho 0.41). Doublets are load-bearing for this atlas: a malignant+stromal doublet mimics the fusion-low mesenchymal state under study, so under-calling would manufacture the finding.",
+  "_doublet_note": "Explicit threshold because scikit-image (needed for scrublet's automatic threshold) is refused by host policy in this install.",
+  "drop_declared_empty_wells": true,
+  "_assay_key_note": "Keys here are the SAME tokens as obs['assay'] and metadata assay (10x_scRNA, 10x_snRNA, CELseq2_scRNA). They previously read 'CEL-seq2' while the covariate table said 'CELseq2_scRNA' - two spellings of one fact, the defect the controlled vocabulary exists to prevent. tests/test_invariants.py now asserts every by-assay block keys exactly on the controlled vocabulary."
+ },
+ "gene_space": {
+  "rule": "intersection of per-study annotations, restricted to genes detected in >=3 cells in >=1 study",
+  "min_cells_detected": 3,
+  "detected_in_n_studies": 1,
+  "_rule_note": "min_cells_detected and detected_in_n_studies are the machine-readable form of 'rule'; src/ reads these two, never the prose. Requiring detection in EVERY study penalises the shallowest arm; the union admits structural zeros that an integration model reads as biology.",
+  "strip_barnyard_prefix_regex": "^(GRCH38|HG19|MM10|GRCM38)[_-]",
+  "_prefix_note": "Aynaud GSE130024 ships 4 samples with GRCh38_-prefixed symbols and 1 with plain symbols; without stripping, the intersection silently matches only the plain sample and zeroes 13,064 cells."
+ },
+ "integration": {
+  "primary": "scVI",
+  "hvg": {
+   "n_top_genes": 5000,
+   "flavor": "seurat_v3",
+   "batch_key": "study",
+   "_hvg_note": "study-level, not sample-level: per-sample seurat_v3 fails with a loess singularity on the small CEL-seq2 plates."
+  },
+  "scvi": {
+   "n_latent": 30,
+   "n_layers": 2,
+   "gene_likelihood": "nb",
+   "encode_covariates": true,
+   "use_layer_norm": "both",
+   "use_batch_norm": "none",
+   "batch_key": "sample",
+   "categorical_covariate_keys": [
+    "study",
+    "assay"
+   ],
+   "continuous_covariate_keys": [
+    "pct_counts_mt"
+   ],
+   "max_epochs": 500,
+   "early_stopping": true,
+   "early_stopping_patience": 12,
+   "batch_size": 512,
+   "lr": 0.001
+  },
+  "_scvi_note": "encode_covariates/layer_norm/batch_norm follow NBAtlas (doi 10.1016/j.celrep.2024.114804) and the scArches-recommended configuration; the previous 120-epoch run never triggered early stopping, i.e. was under-trained.",
+  "batch_key_arms": [
+   "sample",
+   "study"
+  ],
+  "_batch_key_note": "Run both: 56 sample-level batches on ~100k cells spends many batch-specific parameters and is a suspected contributor to the 78.1% same-study neighbour structure measured on v4.0.",
+  "baseline": "harmony",
+  "benchmark": {
+   "package": "scib-metrics",
+   "batch_metrics": [
+    "ilisi_knn",
+    "kbet_per_label",
+    "graph_connectivity",
+    "pcr_comparison"
+   ],
+   "bio_metrics": [
+    "nmi_ari_cluster_labels_leiden",
+    "clisi_knn",
+    "isolated_labels"
+   ]
+  }
+ },
+ "annotation": {
+  "cluster": {
+   "algorithm": "leiden",
+   "flavor": "leidenalg",
+   "resolution": 1.0
+  },
+  "label_transfer": "scANVI",
+  "cnv": "infercnvpy",
+  "_cnv_note": "NBAtlas used CopyKAT + SCEVAN (R); infercnvpy is the Python equivalent and avoids the Bioconductor load failures seen in this sandbox."
+ },
+ "paths": {
+  "raw": "data/raw",
+  "interim": "data/interim",
+  "processed": "data/processed",
+  "atlas_out": "data/processed/EWSAtlas_v5.h5ad",
+  "metadata": "data/metadata",
+  "covariates": "data/metadata/ews_covariates_harmonized.csv"
+ },
+ "compute": {
+  "provider": "byoc:modal",
+  "env_name": "ews_integration_gpu",
+  "image_ref": "im-DdwhygaSGL9V5gKurM7ksW",
+  "spec_sha": "83a26f236d5ca71c",
+  "gpu": "A100",
+  "cpu": 8,
+  "memory_mib": 32768
+ },
+ "controlled_vocabulary": {
+  "_note": "Allowed values per covariate. A harmonized atlas whose own columns carry two spellings of the same fact (sex 'M' and 'male'; sort 'cd45+' and 'live_CD45pos_FACS') has not harmonized anything; tests/test_invariants.py enforces this list.",
+  "sex": [
+   "male",
+   "female",
+   "not_reported"
+  ],
+  "material_type": [
+   "patient_tumor",
+   "O-PDX",
+   "CTC",
+   "PBMC",
+   "normal_tissue",
+   "not_reported"
+  ],
+  "disease_state": [
+   "primary",
+   "metastasis",
+   "recurrence",
+   "normal",
+   "not_reported"
+  ],
+  "treatment_timing": [
+   "treatment_naive",
+   "post_treatment",
+   "not_reported"
+  ],
+  "sort_strategy": [
+   "CD45pos_FACS",
+   "CD45neg_FACS",
+   "live_FACS",
+   "microfiltration_CellSieve_8um",
+   "not_reported"
+  ],
+  "fusion_partner": [
+   "FLI1",
+   "ERG",
+   "other",
+   "not_reported"
+  ],
+  "assay": [
+   "10x_scRNA",
+   "10x_snRNA",
+   "CELseq2_scRNA"
+  ]
+ }
+}

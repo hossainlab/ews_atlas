@@ -1,0 +1,5 @@
+Embedding,Batch correction,Bio conservation,Total,same_study_knn,expected_same_study_knn
+scVI_batch_sample,0.611,0.603,0.606,0.76,0.338
+scVI_batch_study,0.567,0.509,0.532,0.95,0.338
+Harmony_sample,0.403,0.537,0.483,0.825,0.338
+Unintegrated_PCA,0.317,0.516,0.437,0.984,0.338

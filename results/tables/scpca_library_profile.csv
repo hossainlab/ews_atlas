@@ -1,0 +1,14 @@
+scpca_library_id,scpca_sample_id,submitter_id,participant_id,id_conflict,is_xenograft,fusion_status,disease_timing,primary_or_metastasis,treatment_status,primary_site,tissue_location,sex,age,seq_unit,technology,filtered_nuclei,processed_cells,median_genes,median_umis,median_pct_mt,pct_below_200,pct_below_100,library_gate_fail
+SCPCL000822,SCPCS000490,SJEWS001321_D2,SJEWS001321,False,False,EWSR1-FLI1,Initial diagnosis,Primary,Yes,Tibia,Tibia,M,10,nucleus,10xv3.1,6910,4277,2141,4338,1.88,0.04,0.0,False
+SCPCL000823,SCPCS000491,SJEWS001321_X1,SJEWS001321,False,True,EWSR1-FLI1,Initial diagnosis,Primary,Yes,Tibia,Tibia,M,10,nucleus,10xv3.1,14478,12771,1303,2217,1.67,0.0,0.0,False
+SCPCL000824,SCPCS000492,SJEWS049193_D1,SJEWS049193,False,False,EWSR1-FLI1,Recurrence,Metastasis,Yes,Ilium,Lung,M,11,nucleus,10xv3.1,8944,7365,1828,3228,2.55,0.18,0.04,False
+SCPCL000825,SCPCS000493,SJEWS063826_D1,SJEWS063826,False,False,EWSR1-FLI1,Recurrence,Metastasis,No,Rib,Axilla,M,17,nucleus,10xv3.1,6533,5778,1635,2688,4.03,0.02,0.0,False
+SCPCL000826,SCPCS000494,SJEWS063829_D1,SJEWS063829,False,False,unknown,Initial diagnosis,Primary,Yes,Femur,Femur,F,8,nucleus,10xv3.1,5843,3858,484,637,0.54,0.02,0.0,False
+SCPCL000827,SCPCS000495,SJEWS063834_A1,SJEWS063834,False,False,EWSR1-FLI1,Recurrence,Metastasis,No,Unknown,Chest wall,F,14,nucleus,10xv3.1,7221,4233,237,276,2.27,33.08,0.0,False
+SCPCL000828,SCPCS000496,SJEWS063834_A2,SJEWS063834,False,False,EWSR1-FLI1,Recurrence,Metastasis,No,Unknown,Lung,F,14,nucleus,10xv3.1,3111,2627,436,623,5.54,7.52,2.57,False
+SCPCL001111,SCPCS000749,SJEWS049193_D2,SJEWS049193,False,False,EWSR1-FLI1,Recurrence,Metastasis,Yes,Ilium,Lung,M,11,nucleus,10xv3.1,6139,89,44,76,14.93,98.47,91.99,True
+SCPCL001112,SCPCS000750,SJEWS049193_X1,SJEWS049193,False,True,EWSR1-FLI1,Recurrence,Metastasis,Yes,Ilium,Lung,M,11,nucleus,10xv3.1,4410,2864,268,304,1.41,28.12,8.89,False
+SCPCL001113,SCPCS000751,SJEWS049193_X2,SJEWS049193,False,True,EWSR1-FLI1,Recurrence,Metastasis,Yes,Ilium,Lung,M,11,nucleus,10xv3.1,5826,4155,828,1058,1.64,0.0,0.0,False
+SCPCL001114,SCPCS000752,SJEWS063826_X1,SJEWS063829,True,True,unknown,Initial diagnosis,Primary,Yes,Femur,Femur,F,8,nucleus,10xv3.1,3332,3150,2870,5899,3.6,0.0,0.0,False
+SCPCL001115,SCPCS000753,SJEWS063829_X1,SJEWS063834,True,True,EWSR1-FLI1,Recurrence,Metastasis,No,Unknown,Chest wall,F,14,nucleus,10xv3.1,8680,6551,829,1157,3.24,0.07,0.0,False
+SCPCL001116,SCPCS000754,SJEWS063834_X2,SJEWS063834,False,True,EWSR1-FLI1,Recurrence,Metastasis,No,Unknown,Lung,F,14,nucleus,10xv3.1,10656,8847,472,563,0.81,0.0,0.0,False

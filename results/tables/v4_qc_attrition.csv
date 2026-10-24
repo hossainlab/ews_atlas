@@ -1,0 +1,6 @@
+study,raw,drop_min_genes,drop_mito,drop_mad,drop_doublet,kept_after_qc,removed_empty_wells,final_in_v4,pct_kept
+Aynaud_2020,15739,146,176,552,302,14645,0,14645,93.0
+Cillo_2022,15547,465,86,316,209,14523,0,14523,93.4
+Goodspeed_2025,13367,0,0,548,107,12712,0,12712,95.1
+Mao_2024,17002,283,523,472,257,15664,0,15664,92.1
+Visser_2023,10368,2863,347,58,32,7172,14,7158,69.0

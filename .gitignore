@@ -218,3 +218,56 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---- Project-specific ----
+# Claude / AI assistant files
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+**/.claude/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# Benchmarks / logs
+.benchmarks/
+logs/
+
+# Large data formats (anywhere)
+*.h5ad
+*.h5
+*.h5mu
+*.loom
+*.mtx
+*.mtx.gz
+*.rds
+*.RData
+*.parquet
+*.zarr/
+*.CEL
+*.CEL.gz
+*.fastq*
+*.bam
+*.bai
+*.pt
+*.ckpt
+*.pkl
+*.npz
+models/
+checkpoints/
+
+# Large per-cell result tables
+results/tables/*percell*
+results/tables/*per_cell*
+results/tables/*_labels.csv
+
+# Reference PDFs and built manuscript outputs
+docs/references/*.pdf
+preprint/*.pdf
+preprint/*.docx

@@ -1,0 +1,35 @@
+leiden,cells,cell_type,top_z,n_studies,pct_pdx,guard_note
+0,19338,Ewing_sarcoma,1.1,4,60.1,
+1,16995,Ewing_sarcoma,1.13,6,55.4,
+2,13246,Ewing_sarcoma,1.3,6,73.9,
+3,12366,Ewing_sarcoma,1.88,4,45.3,
+4,9249,Ewing_sarcoma,1.16,4,61.7,
+5,7739,T_cell,5.53,5,3.2,"NK refused (CD3 1.29 - cytotoxic T, not NK)"
+6,5859,T_cell,2.6,5,13.7,
+7,5763,Monocyte_Macrophage,3.3,4,2.6,DC refused (markers absent: max 0.28 < 0.3)
+8,4929,Ewing_sarcoma,1.3,5,67.5,
+9,4882,Ewing_proliferating,3.95,6,69.6,
+10,4109,Endothelial,5.4,4,0.6,
+11,4070,Ewing_sarcoma,0.81,6,24.7,
+12,3920,Monocyte_Macrophage,3.79,6,3.1,
+13,3519,Ewing_sarcoma,1.65,4,43.4,
+14,3332,Ewing_proliferating,0.7,4,51.4,
+15,3167,Fibroblast_CAF,2.05,3,0.2,
+16,2453,Urothelial,5.48,1,0.4,
+17,2427,T_cell,1.51,5,14.8,
+18,1679,B_cell,5.61,5,1.9,
+19,1452,Fibroblast_CAF,3.77,4,2.0,
+20,1444,Fibroblast_CAF,3.28,1,0.4,
+21,1011,Ewing_proliferating,1.86,4,90.7,
+22,777,Unassigned,0.3,4,1.3,"MSC_Osteoblast refused (cluster z 0.30 < 0.5, no positive evidence)"
+23,715,DC,3.11,2,0.0,
+24,693,Ewing_proliferating,0.93,4,36.9,
+25,670,Unassigned,0.29,4,27.2,"urothelial refused (bladder study <50% of cluster); MSC_Osteoblast refused (markers absent: max 0.05 < 0.2); Ewing_sarcoma refused (cluster z 0.09 < 0.5, no positive evidence)"
+26,602,Unassigned,0.36,2,0.0,"Monocyte_Macrophage refused (cluster z 0.36 < 0.5, no positive evidence)"
+27,416,Unassigned,0.77,2,0.2,urothelial refused (bladder study <50% of cluster); B_cell refused (markers absent: max 0.00 < 0.25); NK_cell refused (markers absent: max 0.00 < 0.5)
+28,398,Monocyte_Macrophage,4.74,2,1.5,MSC_Osteoblast refused (markers absent: max 0.02 < 0.2)
+29,396,Plasma,5.57,5,0.8,
+30,344,Unassigned,0.41,1,0.3,"Fibroblast_CAF refused (cluster z 0.41 < 0.5, no positive evidence)"
+31,218,Platelet,5.66,2,0.0,
+32,102,Ewing_sarcoma,0.9,3,2.9,
+33,73,Ewing_proliferating,1.79,4,5.5,

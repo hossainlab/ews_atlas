@@ -1,0 +1,7 @@
+study,raw,gene_floor_applied,mito_cap_applied,failed_libraries,drop_failed_library,drop_below_gene_floor,drop_above_mito_cap,drop_mad_outlier,doublet_method,drop_doublet,doublet_not_assessed,doublet_errors,kept,pct_kept
+Aynaud_2020,15739,200,30.0,,0,146,176,552,expected_rate,443,0,,14504,92.2
+Cillo_2022,15547,200,30.0,,0,465,86,316,expected_rate,379,0,,14353,92.3
+Goodspeed_2025,13367,200,30.0,,0,0,0,548,expected_rate,180,56,,12639,94.6
+Mao_2024,17002,200,30.0,,0,283,523,472,expected_rate,527,0,,15394,90.5
+Visser_2023,9840,200,40.0,TM424;TM425;TM737;TM768,1472,1563,498,33,expected_rate,19,20,,6575,66.8
+Waltner_2025,92083,100,10.0,SCPCS000749,6139,476,4441,1283,expected_rate,5189,0,,74888,81.3

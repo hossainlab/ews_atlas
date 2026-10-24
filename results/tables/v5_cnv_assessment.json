@@ -1,0 +1,7 @@
+{
+ "auc_overall": 0.6765677714405474,
+ "median_malignant": 0.01185146073445458,
+ "median_reference": 0.009082891978721766,
+ "cells_scored": 113049,
+ "samples_with_reference": 37
+}
