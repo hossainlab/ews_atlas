@@ -1,0 +1,10 @@
+depositor_label,cells,pct_malignant,pct_fibroblast,pct_unassigned,top_atlas_label,top_atlas_pct
+Malignant,59788,94.0,1.4,0.1,Ewing_sarcoma,86.1
+T_NK,3970,5.1,0.0,0.0,T_cell,89.7
+Myeloid,3005,1.1,0.7,0.0,Monocyte_Macrophage,92.1
+Stromal,884,75.3,22.7,1.0,Ewing_sarcoma,62.3
+Endothelial,736,12.1,0.0,0.0,Endothelial,87.8
+Epithelial,351,16.0,0.0,83.8,Unassigned,83.8
+Blood_other,305,10.2,12.5,0.0,Platelet,70.5
+B_plasma,229,2.2,0.0,0.0,B_cell,73.8
+pDC,132,2.3,0.0,0.0,pDC,97.0

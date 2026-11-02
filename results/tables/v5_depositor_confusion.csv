@@ -1,0 +1,15 @@
+cell_type,B_plasma,Blood_other,Endothelial,Epithelial,Malignant,Myeloid,Stromal,T_NK,pDC
+B_cell,169,0,0,0,29,2,0,3,0
+DC,0,0,0,0,5,176,0,1,0
+Endothelial,0,0,646,0,67,3,0,0,0
+Ewing_proliferating,3,22,20,5,4772,8,115,3,0
+Ewing_sarcoma,2,9,69,51,51451,26,551,200,3
+Fibroblast_CAF,0,38,0,0,844,20,201,0,0
+Monocyte_Macrophage,0,20,1,0,186,2769,0,13,1
+NK,0,0,0,0,4,0,0,188,0
+Plasma,36,0,0,0,1,0,0,0,0
+Platelet,0,215,0,0,0,0,0,0,0
+T_cell,0,1,0,1,2359,0,8,3562,0
+Unassigned,0,0,0,294,57,0,9,0,0
+Urothelial,0,0,0,0,11,0,0,0,0
+pDC,19,0,0,0,2,1,0,0,128
