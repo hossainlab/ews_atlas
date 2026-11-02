@@ -97,7 +97,7 @@ ews_atlas/
 │   ├── interim/             regenerable intermediates (QC objects, embeddings, panels)
 │   └── processed/           EWSAtlas_v5.h5ad, the release object
 ├── results/
-│   ├── pub_figs/            THE figures - submission names, plus figure_captions.md
+│   ├── figures/             THE figures (PNG + PDF), figure_captions.md, figure_stats.json
 │   ├── tables/              numeric results, one CSV/JSON per analysis
 │   └── reports/             written reports and release notes
 └── logs/                    one run manifest per stage execution
@@ -105,8 +105,9 @@ ews_atlas/
 
 **Rules that keep it this way.**
 
-- Composed figures are written by stage 06 directly into `results/pub_figs`
-  under submission names. There is no second copy under another naming scheme.
+- Composed figures are written by stage 14 (`14_figures.py`) directly into
+  `results/figures` under submission names. There is no second copy under
+  another naming scheme.
 - Per-panel PNGs are intermediates and go to `data/interim/figure_panels`;
   nothing in `results/` is regenerable scratch.
 - `data/interim` holds only what is expensive to recreate. The scVI latents in

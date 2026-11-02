@@ -203,5 +203,38 @@ That is the caveat the resource exists to issue, which is what makes it main
 text.
 
 This reverses a decision the user approved, so it is theirs to overturn; the
-figures are interchangeable by number alone (`06_figures.py` builds both
-regardless) and the swap costs one render.
+figures are interchangeable by number alone and the swap costs one render.
+(The current set keeps the confounding result in main Figure 4 and the
+CAF-like state as Figure S7; see ADR-015.)
+
+
+## ADR-015 · One figure set, built last, structured on published atlases
+
+**Decision.** The publication figures are built by a single stage,
+`src/pipeline/14_figures.py`, into `results/figures/`. The earlier stage-06 set
+(`results/pub_figs/`) and its script are removed, not kept beside it; there is
+no versioned second set in the repository.
+
+**Why last.** The figures draw on tables from stages 07–12 (CAF-like state,
+reference mapping, bulk deconvolution, surface targets, Waltner sensitivity).
+Numbering the figure stage before them told a reader to run it before its
+inputs existed.
+
+**Why this structure.** It follows the sequence shared by published harmonized
+atlases (GBmap, doi:10.1093/neuonc/noaf113; integrated breast-cancer atlas,
+doi:10.1093/nargab/lqaf217; HLCA, doi:10.1038/s41591-023-02327-2; LuCA,
+doi:10.1016/j.ccell.2022.10.008; NBAtlas, doi:10.1016/j.celrep.2024.114804):
+construction → validation → composition across samples → compartments →
+reference use → clinical association. Two changes follow from that: per-sample
+composition gets its own figure (Figure 3), and label transfer to unseen
+studies moves into the integration figure (Figure 2D) as evidence that the
+annotation generalizes.
+
+**Placement.** The capture-confounding result stays in main text (Figure 4E–F),
+for the reasons in the section above; the CAF-like state is Figure S7.
+
+**Survival display.** Figure 6D splits patients at the within-cohort median of
+the atlas-derived malignant fraction for display only; the inference is the
+continuous, cohort-stratified Cox model of stage 09 (Figure 6E), on the same
+129 patients.
+

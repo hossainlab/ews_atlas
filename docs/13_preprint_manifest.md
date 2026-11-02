@@ -187,7 +187,7 @@ no in-figure titles.
 | Table S1 | `s8_waltner_sensitivity.csv` |
 
 Every supplementary figure is cited at least once in the Results, and every
-figure that is rendered has a legend in `results/pub_figs/figure_captions.md` —
+figure that is rendered has a legend in `results/figures/figure_captions.md` —
 `write_supplementary()` raises if a legend is missing, so a figure cannot reach
 the companion PDF unlabelled.
 

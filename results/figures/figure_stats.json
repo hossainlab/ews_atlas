@@ -1,0 +1,16 @@
+{
+ "cells": 138353,
+ "studies": 6,
+ "samples": 65,
+ "patients": 38,
+ "genes": 16622,
+ "raw_barcodes": 163578,
+ "malignant_cells": 97586,
+ "immune_cells": 29114,
+ "immune_subsets": 13,
+ "km_os_malignant": {
+  "p": 0.04737623322163054,
+  "n": 129,
+  "events": 51
+ }
+}

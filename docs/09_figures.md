@@ -1,50 +1,75 @@
 # 09 · Figures
 
-Produced by `src/pipeline/06_figures.py`; panel renderers live in
-`ewsatlas.figures` so one panel can be regenerated without redrawing a figure
-that already passes. Panels are rendered individually to transparent PNGs at
-exact pixel sizes and tiled onto a 12-column grid at 180 mm (double-column)
-width, 300 dpi, with bold panel letters stamped at composition time.
+```bash
+python src/pipeline/14_figures.py                  # full set, ~1 min once cached
+python src/pipeline/14_figures.py --prepare-only   # malignant embedding cache only (~3 min, CPU)
+```
 
-**No panel carries a title.** The captions in
-`results/reports/figure_captions.md` carry the message, which raises the bar on
-in-figure identifiability: every panel must be readable from its axis labels,
-direct labels and legend alone.
+The figure stage runs **last**: it reads the atlas object and tables written by
+stages 01–12. It writes to `results/figures/`:
+
+- `Figure_*.png` (300 dpi) and `Figure_*.pdf` (vector, editable text; dense
+  scatter layers rasterized at 300 dpi), 180 mm wide;
+- `figure_stats.json`, the totals quoted in the captions, read at render time;
+- `figure_captions.md`, kept by hand.
+
+Per-panel intermediates go to `data/interim/figure_panels/`. The stage deletes
+any `Figure_*` file in `results/figures/` it did not write in the same run, so
+a renamed figure never sits beside its old name.
+
+Code: panel renderers in `ewsatlas.figures` (one axis in, no title);
+grid, rendering and composition in `ewsatlas.layout`. Every geometric and
+analytic parameter (width, dpi, gutter, letter size, malignant-embedding
+neighbours, programs shown, minimum cells per held-out type and per sample) is
+in the `figures` block of `src/config.json`; input and output locations are in
+`paths`.
 
 ## The set
 
+The order follows the arc shared by published harmonized atlases (GBmap, the
+integrated breast-cancer atlas, HLCA, LuCA, NBAtlas): construction →
+validation → composition → compartments → reference use → clinical
+association. Supplementary figures are numbered in the order the main text
+cites them.
+
 | figure | subject |
 |---|---|
-| `Figure_1_atlas_overview.png` | the resource: embedding, marker evidence, cohort composition |
-| `Figure_2_integration_quality.png` | embedding choice by benchmark, and how much residual study structure is composition |
-| `Figure_3_malignant_compartment.png` | the statistic that makes copy-number inference usable, and the frozen malignant set |
-| `Figure_4_recurrence_and_confounding.png` | what recurs across six studies, and why most of it is capture rather than biology |
-| `Figure_5_immune_microenvironment.png` | thirteen immune subsets, correcting two atlas-level calls |
-| `Figure_S1_quality_control.png` | barcode fate per study; assay-aware floors and caps |
-| `Figure_S2_deposit_specific_qc.png` | the failed ScPCA library; ERCC spike-in share per CEL-seq2 plate |
-| `Figure_S3_integration_detail.png` | scVI training curves; the individual scIB metrics |
-| `Figure_S4_covariate_coverage.png` | covariate completeness per study |
-| `Figure_S5_copy_number_first_attempt.png` | the superseded genome-wide score, kept as the record of what failed |
+| `Figure_1_atlas_construction` | study design, the integrated embedding, study and assay, cells per study, marker evidence |
+| `Figure_2_integration_and_annotation` | embedding benchmark, residual study structure, depositor agreement, leave-one-study-out label transfer |
+| `Figure_3_composition_across_samples` | composition of all 65 samples with covariate strips; by material; study contribution per cell type |
+| `Figure_4_malignant_compartment` | the copy-number statistic, malignant-only embedding and program scores, malignant evidence, recurrence and its capture confounding |
+| `Figure_5_immune_microenvironment` | thirteen immune subsets, marker evidence, subset share per sample |
+| `Figure_6_atlas_as_reference` | surface-target selectivity; bulk deconvolution, Kaplan–Meier and Cox models |
+| `Figure_S1_quality_control` | barcode fate per study; assay-aware floors and caps |
+| `Figure_S2_deposit_specific_qc` | the failed ScPCA library; ERCC spike-in share per CEL-seq2 plate |
+| `Figure_S3_integration_detail` | scVI training curves; individual scIB metrics; embedding by study, assay, sample |
+| `Figure_S4_covariate_coverage` | covariate completeness per study |
+| `Figure_S5_copy_number_detail` | the superseded genome-wide score, kept as the record of what failed; arm-level scores |
+| `Figure_S6_umap_by_sample` | the integrated embedding coloured by sample |
+| `Figure_S7_caf_like_state` | the CD73-high fibroblast-like malignant state |
 
-Panel letters are bold **uppercase** (Cell Press house style), 9 pt derived from
-the output dpi, in a reserved band above each grid row; single-panel figures
-carry no letter. Stage 06 writes the composed figures straight into `results/pub_figs/` under
-submission filenames and copies `figure_captions.md` alongside them; per-panel
-intermediates go to `data/interim/figure_panels/`.
+The malignant-only embedding and program scores (Figure 4B–C) are cached at
+`paths.malignant_embedding`. Delete the file to recompute it; it is seeded by
+`config.seed` and regenerates identically on the same machine and package set.
 
 ## Conventions
 
+- **No panel carries a title.** Captions carry the message, so every panel must
+  be readable from its axis labels, direct labels and legend alone.
+- **Panel letters** are bold uppercase (Cell Press house style), set in
+  `figures.letter_pt`. All letters in one grid row share a baseline placed
+  just above the highest drawn element in that row, read from the transparent
+  panel canvases, so a letter neither floats in empty margin nor overlaps its
+  panel. Single-panel figures carry no letter. The bold face is resolved
+  through matplotlib's font manager (DejaVu Sans Bold, shipped with
+  matplotlib), because PIL cannot find fonts by name on every platform and
+  silently falls back to a regular-weight face.
 - **Dispersed classes are never direct-labelled.** `Unassigned` cells are
   scattered through the malignant mass, so a label at their median names the
   wrong thing; only the classes in `figures.DIRECT` get on-plot text.
-- **Colour is threaded.** A cell type keeps one colour across every figure, so
-  Figure 1e needs no second legend.
-- **Figure 3 reports a negative result.** `cnv_score` ships on the released
-  object, so a reader will find it; the figure is what stops them using it.
-- **Determinism is checked, not assumed.** Two consecutive runs of the stage
-  produce byte-identical PNGs for all seven figures.
-
-No discovery figures exist, because that analysis is blocked — see
-[06_discovery.md](06_discovery.md) and the copy-number section of
-[05_annotation.md](05_annotation.md). Drawing a fusion-activity axis over a
-marker-defined malignant set would look convincing and be circular.
+- **Colour is threaded.** A cell type, study or immune subset keeps one colour
+  in every figure; immune subsets take the hue family of their parent class.
+- **Not-reported covariates are drawn**, in light grey, never omitted.
+- **Display versus inference.** The Kaplan–Meier split in Figure 6D (within-
+  cohort median) is for display; the test is the continuous, cohort-stratified
+  Cox model in Figure 6E.

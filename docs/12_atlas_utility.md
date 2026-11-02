@@ -2,7 +2,7 @@
 
 Stages: `src/pipeline/08_reference_mapping.py`, `09_bulk_deconvolution.py`,
 `10_surface_targets.py`
-Outputs: `results/tables/f6_*.csv`, `results/pub_figs/Figure_6_atlas_utility.png`
+Outputs: `results/tables/f6_*.csv`, `results/figures/Figure_6_atlas_as_reference.png`
 
 A Resource paper is judged on whether anyone else can use the resource. This
 stage answers that in three ways that do not depend on each other.
@@ -160,5 +160,5 @@ Proportional-hazards assumptions were **not assessed**.
 python src/pipeline/10_surface_targets.py
 python src/pipeline/09_bulk_deconvolution.py
 python src/pipeline/08_reference_mapping.py   # ~1 h on 12 CPU cores
-python src/pipeline/06_figures.py
+python src/pipeline/14_figures.py
 ```

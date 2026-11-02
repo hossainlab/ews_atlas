@@ -1,7 +1,7 @@
 # 11. The CD73-high fibroblast-like malignant state
 
 Stage: `src/pipeline/07_caf_state.py`
-Outputs: `results/tables/f4_*.csv`, `results/pub_figs/Figure_4_caf_like_state.png`
+Outputs: `results/tables/f4_*.csv`, `results/figures/Figure_S7_caf_like_state.png`
 
 ## Question
 
@@ -110,5 +110,5 @@ described as heterogeneous rather than as contamination.
 python src/pipeline/07_caf_state.py          # native depth
 python src/pipeline/07_caf_state.py 1500     # depth-matched
 python src/pipeline/07_caf_state.py tables   # panel inputs
-python src/pipeline/06_figures.py
+python src/pipeline/14_figures.py
 ```

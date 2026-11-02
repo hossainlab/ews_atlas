@@ -1,4 +1,4 @@
-"""Panel renderers for the EWSAtlas figure set.
+"""Panel renderers for the EWSAtlas figure set (stage 14).
 
 Every function draws into a supplied axis and sets **no title** - captions carry
 the message, per the project's figure convention. That raises the bar on
@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
 CT_ORDER = ["Ewing_sarcoma", "Ewing_proliferating", "T_cell", "NK", "B_cell", "Plasma",
             "Monocyte_Macrophage", "DC", "pDC", "Mast", "Platelet", "Endothelial",
@@ -94,38 +95,8 @@ def _embedding_axes(ax, xlab="UMAP 1", ylab="UMAP 2"):
 
 # ---------------------------------------------------------------- Figure 1 ---
 
-def panel_umap_celltype(ax, d):
-    rng = np.random.default_rng(0)
-    dd = d.iloc[rng.permutation(len(d))]
-    for lvl in CT_ORDER:
-        s = dd[dd.cell_type == lvl]
-        ax.scatter(s.umap1, s.umap2, s=0.5, lw=0, c=CT_COLOR[lvl], rasterized=True, alpha=0.5)
-    _embedding_axes(ax)
-    for lvl in (c for c in CT_ORDER if c in DIRECT):
-        s = d[d.cell_type == lvl]
-        ax.text(s.umap1.median(), s.umap2.median(), PRETTY[lvl], fontsize=5.6, ha="center",
-                va="center", bbox=dict(fc="white", ec="none", alpha=0.7, pad=0.6))
-    rest = [c for c in CT_ORDER if c not in DIRECT]
-    ax.legend([plt.Line2D([], [], marker="o", ls="", ms=3, mfc=CT_COLOR[c], mec="none") for c in rest],
-              [f"{PRETTY[c]} ({int((d.cell_type == c).sum()):,})" for c in rest],
-              frameon=False, fontsize=5.4, loc="lower right", handletextpad=0.25,
-              labelspacing=0.2, borderpad=0.05)
 
-
-def panel_umap_study(ax, d):
-    rng = np.random.default_rng(0)
-    dd = d.iloc[rng.permutation(len(d))]
-    for lvl in STUDY_ORDER:
-        s = dd[dd.study == lvl]
-        ax.scatter(s.umap1, s.umap2, s=0.5, lw=0, c=SCOLOR[lvl], rasterized=True, alpha=0.5)
-    _embedding_axes(ax)
-    ax.legend([plt.Line2D([], [], marker="o", ls="", ms=3, mfc=SCOLOR[s], mec="none") for s in STUDY_ORDER],
-              [f"{SPRETTY[s]} ({int((d.study == s).sum()):,})" for s in STUDY_ORDER],
-              frameon=False, fontsize=5.4, loc="lower right", handletextpad=0.25,
-              labelspacing=0.2, borderpad=0.05)
-
-
-def panel_marker_dotplot(ax, dot):
+def panel_marker_dotplot(ax, dot, rotate_groups=False):
     genes, boundaries, labels = [], [], []
     for name, gs in MARKER_GROUPS:
         present = [g for g in gs if g in set(dot.gene)]
@@ -148,57 +119,39 @@ def panel_marker_dotplot(ax, dot):
     ax.set_xticklabels(genes, rotation=90, style="italic")
     ax.set_yticks(np.arange(len(cts)))
     ax.set_yticklabels([PRETTY[c] for c in cts])
-    # group headers stagger across two tiers: adjacent short/long names collided
-    for i, (name, x) in enumerate(labels):
-        ax.text(x, len(cts) - 0.3 + (0.95 if i % 2 else 0.0), name, ha="center", va="bottom",
-                fontsize=5.4, color="0.3")
-    ax.set_ylim(-0.9, len(cts) + 1.3); ax.set_xlim(-0.8, len(genes) - 0.2)
+    if rotate_groups:
+        # narrow panels: one tier, each header angled from its group's first gene
+        starts = [-0.5] + boundaries[:-1]
+        widths = np.diff([-0.5] + boundaries)
+        for (name, _), x0, w in zip(labels, starts, widths):
+            if w < 2:   # a one-gene group is named by its gene; a header would collide
+                continue
+            # 60 degrees: parallel labels one gene apart sit ~7 pt apart
+            # perpendicular to the text, enough for 5 pt type; 35 degrees was not
+            ax.text(x0 + 0.55, len(cts) - 0.35, name, ha="left", va="bottom", rotation=60,
+                    rotation_mode="anchor", fontsize=5.0, color="0.3")
+        ax.set_ylim(-0.9, len(cts) + 2.6)
+    else:
+        # group headers stagger across two tiers: adjacent short/long names collided
+        for i, (name, x) in enumerate(labels):
+            ax.text(x, len(cts) - 0.3 + (1.55 if i % 2 else 0.0), name, ha="center",
+                    va="bottom", fontsize=5.4, color="0.3")
+        ax.set_ylim(-0.9, len(cts) + 2.0)
+    ax.set_xlim(-0.8, len(genes) - 0.2)
     _despine(ax, keep=())
     ax.tick_params(length=0)
     # colorbar and size key sit in reserved insets so they cannot overlap
-    cax = ax.inset_axes([1.012, 0.52, 0.012, 0.44])
+    cax = ax.inset_axes([1.012, 0.42, 0.012, 0.36] if rotate_groups else [1.012, 0.52, 0.012, 0.44])
     cb = ax.figure.colorbar(sc, cax=cax)
     cb.set_label("Mean expression\n(log-normalized)", fontsize=5.4, linespacing=1.2)
     cb.ax.tick_params(labelsize=5.0, length=1.2)
     cb.outline.set_visible(False)
     for f, lab in [(0.25, "25%"), (0.75, "75%")]:
         ax.scatter([], [], s=f * 44 + 0.6, c="0.45", lw=0, label=lab)
-    ax.legend(frameon=False, fontsize=5.2, loc="upper left", bbox_to_anchor=(1.005, 0.40),
+    ax.legend(frameon=False, fontsize=5.2, loc="upper left",
+              bbox_to_anchor=(1.005, 0.34 if rotate_groups else 0.40),
               title="Cells expressing", title_fontsize=5.4, handletextpad=0.3,
               labelspacing=0.55, borderpad=0.0)
-
-
-def panel_material_by_study(ax, d):
-    ypos = np.arange(len(STUDY_ORDER))
-    mt = pd.crosstab(d.study, d.material_type).reindex(STUDY_ORDER).reindex(columns=MAT).fillna(0)[::-1]
-    left = np.zeros(len(mt))
-    for c in MAT:
-        ax.barh(ypos, mt[c].to_numpy(), left=left, color=MATC[c], height=0.66, lw=0)
-        left += mt[c].to_numpy()
-    ax.set_yticks(ypos)
-    ax.set_yticklabels([_tier(SPRETTY[s], f"{d[d.study == s]['sample'].nunique()} samples · "
-                                        f"{d[d.study == s].patient.nunique()} patients")
-                        for s in STUDY_ORDER[::-1]])
-    ax.set_xlabel("Cells"); ax.set_xlim(0, 86000)
-    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, p: f"{v/1000:.0f}k" if v else "0"))
-    ax.legend([plt.Rectangle((0, 0), 1, 1, fc=MATC[c], ec="none") for c in MAT],
-              [MATP[c] for c in MAT], frameon=False, fontsize=5.4, loc="lower right",
-              handlelength=0.8, handletextpad=0.35, labelspacing=0.2, borderpad=0.05)
-    _despine(ax); ax.margins(y=0.04)
-
-
-def panel_celltype_by_study(ax, d):
-    ypos = np.arange(len(STUDY_ORDER))
-    comp = pd.crosstab(d.study, d.cell_type, normalize="index").reindex(STUDY_ORDER)
-    comp = comp.reindex(columns=CT_ORDER).fillna(0)[::-1]
-    left = np.zeros(len(comp))
-    for c in CT_ORDER:
-        ax.barh(ypos, comp[c].to_numpy(), left=left, color=CT_COLOR[c], height=0.66, lw=0)
-        left += comp[c].to_numpy()
-    ax.set_yticks(ypos); ax.set_yticklabels([SPRETTY[s] for s in STUDY_ORDER[::-1]])
-    ax.set_xlabel("Fraction of cells  (cell-type colours as in panel a)")
-    ax.set_xlim(0, 1)
-    _despine(ax); ax.margins(y=0.04)
 
 
 # ---------------------------------------------------------------- Figure 2 ---
@@ -245,25 +198,6 @@ def panel_knn_vs_expected(ax, mix):
     _despine(ax)
 
 
-def panel_knn_by_study(ax, knn):
-    y = np.arange(len(STUDY_ORDER))
-    for e in ["Unintegrated_PCA", "Harmony_sample", "scVI_batch_study", FOCAL]:
-        vals = [knn[e]["by_study"][s] for s in STUDY_ORDER]
-        focal = e == FOCAL
-        ax.scatter(vals, y, s=34 if focal else 22,
-                   c=CT_COLOR["Ewing_sarcoma"] if focal else "none",
-                   ec="black" if focal else "0.5", lw=0.7 if focal else 0.7,
-                   marker="o" if focal else ["s", "^", "D"][
-                       ["Unintegrated_PCA", "Harmony_sample", "scVI_batch_study"].index(e)],
-                   zorder=4 if focal else 2, label=EPRETTY[e])
-    ax.set_yticks(y); ax.set_yticklabels([SPRETTY[s] for s in STUDY_ORDER])
-    ax.set_xlabel("Share of 15 nearest neighbours from the same study")
-    ax.set_xlim(0.3, 1.02)
-    ax.legend(frameon=False, fontsize=5.4, loc="lower left", handletextpad=0.25,
-              labelspacing=0.25, borderpad=0.05)
-    _despine(ax); ax.margins(y=0.08)
-
-
 def panel_depositor_confusion(ax, conf):
     """Row-normalized agreement between our labels and the depositors'."""
     mat = conf.div(conf.sum(axis=1), axis=0)
@@ -289,6 +223,7 @@ def panel_depositor_confusion(ax, conf):
                         color="white" if v > 0.55 else "0.25")
     cb = ax.figure.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
     cb.set_label("% of row", fontsize=5.6); cb.ax.tick_params(labelsize=5.2, length=1.5)
+    cb.ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, p_: f"{100 * v:.0f}"))
     cb.outline.set_visible(False)
     _despine(ax, keep=()); ax.tick_params(length=0)
 
@@ -427,7 +362,7 @@ def panel_qc_attrition(ax, att):
     _despine(ax); ax.margins(y=0.05)
 
 
-def _assay_hist(ax, d, col, xlabel, logx=False, cap=None):
+def _assay_hist(ax, d, col, xlabel, logx=False, cap=None, suffix=None):
     for assay in ["10x_scRNA", "CELseq2_scRNA", "10x_snRNA"]:
         v = d.loc[d.assay == assay, col].dropna().to_numpy()
         if not len(v):
@@ -438,7 +373,7 @@ def _assay_hist(ax, d, col, xlabel, logx=False, cap=None):
         else:
             bins = np.linspace(0, cap if cap else v.max(), 60)
         ax.hist(v, bins=bins, density=True, histtype="step", lw=1.1,
-                color=ASSAYC[assay], label=ASSAYP[assay])
+                color=ASSAYC[assay], label=ASSAYP[assay] + (suffix[assay] if suffix else ""))
     if logx:
         ax.set_xscale("log")
         ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(
@@ -449,25 +384,26 @@ def _assay_hist(ax, d, col, xlabel, logx=False, cap=None):
 
 
 def panel_genes_by_assay(ax, d, floors):
-    _assay_hist(ax, d, "n_genes_by_counts", "Detected genes per cell (retained cells)", logx=True)
+    # thresholds are named in the legend: any label set beside its line sits on
+    # top of the histograms, which peak right next to the floors
+    _assay_hist(ax, d, "n_genes_by_counts", "Detected genes per cell (retained cells)",
+                logx=True, suffix={a: f"; floor {v}" for a, v in floors.items()})
     for assay, style in [("10x_scRNA", "-"), ("10x_snRNA", (0, (4, 2)))]:
         ax.axvline(floors[assay], color=ASSAYC[assay], lw=0.8, ls=style, zorder=0)
-    # rotated and set just right of each line: stacked horizontal labels collided
-    # with the curves and with each other
-    ax.annotate("floor 100 (nuclei)", xy=(106, 0.55), xycoords=("data", "axes fraction"),
-                fontsize=5.2, color=ASSAYC["10x_snRNA"], ha="left", va="center", rotation=90)
-    ax.annotate("floor 200 (whole cell, plate)", xy=(212, 0.55), xycoords=("data", "axes fraction"),
-                fontsize=5.2, color=ASSAYC["10x_scRNA"], ha="left", va="center", rotation=90)
     ax.legend(frameon=False, fontsize=5.4, loc="upper right", handletextpad=0.5,
               labelspacing=0.25, borderpad=0.05)
 
 
 def panel_mito_by_assay(ax, d, caps):
-    _assay_hist(ax, d, "pct_counts_mt", "Mitochondrial content (%)", cap=45)
+    _assay_hist(ax, d, "pct_counts_mt", "Mitochondrial content (%)", cap=45,
+                suffix={a: f"; cap {v:g}%" for a, v in caps.items()})
     for assay in ["10x_snRNA", "10x_scRNA", "CELseq2_scRNA"]:
         ax.axvline(caps[assay], color=ASSAYC[assay], lw=0.8, ls=(0, (4, 2)), zorder=0)
-    ax.annotate("caps: 10 / 30 / 40", xy=(0.97, 0.93), xycoords="axes fraction",
-                ha="right", va="top", fontsize=5.5, color="0.3")
+    # anchored just right of the lowest cap so no cap line runs through the key
+    lo = min(caps.values())
+    ax.legend(frameon=False, fontsize=5.4, loc="upper left", handletextpad=0.5,
+              labelspacing=0.25, borderpad=0.05,
+              bbox_to_anchor=(lo + 1.0, 1.0), bbox_transform=ax.get_xaxis_transform())
 
 
 def panel_library_gate(ax, prof):
@@ -487,9 +423,9 @@ def panel_library_gate(ax, prof):
     ax.annotate("assay floor", xy=(100, len(p) - 0.4), xytext=(112, len(p) - 0.4),
                 fontsize=5.4, color="0.4", va="center")
     for _, r in p[fail].iterrows():
-        ax.annotate("excluded whole", xy=(r.median_genes, list(p.scpca_library_id).index(r.scpca_library_id)),
-                    xytext=(r.median_genes * 1.25, list(p.scpca_library_id).index(r.scpca_library_id)),
-                    fontsize=5.4, color="#882255", va="center")
+        yy = list(p.scpca_library_id).index(r.scpca_library_id)
+        ax.annotate("excluded\nwhole", xy=(r.median_genes, yy), xytext=(r.median_genes * 1.18, yy),
+                    fontsize=5.2, color="#882255", va="center", linespacing=1.05)
     _despine(ax); ax.margins(y=0.05)
 
 
@@ -510,17 +446,19 @@ def panel_spikein_by_plate(ax, d):
 
 def panel_training_curves(ax, hist):
     """scVI ELBO for both batch-key arms; validation is what stops training."""
-    for arm, col, dy in [("sample", CT_COLOR["Ewing_sarcoma"], -34), ("study", GREY, 30)]:
+    # labels sit in a right margin beyond every curve's end, nudged apart, so
+    # no label can land on a curve or on the axis
+    ends = []
+    for arm, col, dy in [("sample", CT_COLOR["Ewing_sarcoma"], -9), ("study", GREY, 9)]:
         tr, va = hist[f"{arm}_train"], hist[f"{arm}_val"]
         ax.plot(tr.index, tr.iloc[:, 0], lw=0.8, color=col, alpha=0.55)
         ax.plot(va.index, va.iloc[:, 0], lw=1.3, color=col)
-        # single line, offset above or below its own curve so the two never meet
-        ax.annotate(f"batch = {arm}, early stop at epoch {len(va)}",
-                    xy=(len(va) - 1, va.iloc[-1, 0]),
-                    xytext=(len(va) - 4, va.iloc[-1, 0] + dy),
-                    fontsize=5.6, color=col, ha="right", va="center")
+        ends.append(max(len(tr), len(va)))
+        ax.text(max(len(tr), len(va)) + 8, va.iloc[-1, 0] + dy,
+                f"batch = {arm}\nstopped at epoch {len(va)}", fontsize=5.4, color=col,
+                ha="left", va="center", linespacing=1.1)
     ax.set_xlabel("Training epoch"); ax.set_ylabel("ELBO")
-    ax.set_ylim(1450, 1760)
+    ax.set_ylim(1460, 1660); ax.set_xlim(-10, max(ends) * 1.42)
     ax.annotate("thin = training, thick = validation", xy=(0.97, 0.95),
                 xycoords="axes fraction", ha="right", va="top", fontsize=5.5, color="0.35")
     _despine(ax)
@@ -597,41 +535,18 @@ def locator_inset(ax, xy_all, mask, loc=(0.72, 0.72, 0.26, 0.26), size=0.6):
     return ins
 
 
-def density_panel(ax, xy, mask, cmap, levels=8, size=0.5):
-    """Embedding density for one group, with the other cells as grey context.
-
-    Preferred over two overplotted colours whenever two clinical groups are
-    compared on the same embedding: with 10^5 cells the colour drawn second
-    simply hides the first, and a density surface does not.
-    """
-    from scipy.stats import gaussian_kde
-    import numpy as np
-
-    ax.scatter(xy[:, 0], xy[:, 1], s=size, c="0.88", linewidths=0, rasterized=True)
-    pts = xy[mask]
-    if len(pts) > 20000:
-        rng = np.random.default_rng(0)
-        pts = pts[rng.choice(len(pts), 20000, replace=False)]
-    k = gaussian_kde(pts.T)
-    xg = np.linspace(xy[:, 0].min(), xy[:, 0].max(), 120)
-    yg = np.linspace(xy[:, 1].min(), xy[:, 1].max(), 120)
-    X, Y = np.meshgrid(xg, yg)
-    Z = k(np.vstack([X.ravel(), Y.ravel()])).reshape(X.shape)
-    ax.contourf(X, Y, Z, levels=levels, cmap=cmap, alpha=0.85)
-    return ax
-
 # ---------------------------------------------------------------------------
-# Figures for the reframed Resource paper (v6): the malignant compartment, what
+# Malignant compartment: the copy-number caller, what
 # recurs across six studies, the capture-confounding result, and the TME.
 # ---------------------------------------------------------------------------
 
-def panel_cnv_statistic_gain(ax, old_csv, new_csv):
+def panel_cnv_statistic_gain(ax, old_csv, new_csv, names=None):
     """Per-sample AUC, old genome-wide statistic against the correlation statistic."""
-    import pandas as pd, numpy as np
     o = pd.read_csv(old_csv); n = pd.read_csv(new_csv)
     n = n[n["status"] == "scored"]
     data = [o["auc"].to_numpy(), n["auc_signal"].to_numpy(), n["auc_corr"].to_numpy()]
-    names = ["v5 genome-wide\nmean |CNV|", "signal statistic\n(new parameters)", "correlation to\nsample consensus"]
+    names = names or ["genome-wide\nmean |CNV|", "signal\nstatistic",
+                      "correlation to\nsample consensus"]
     for i, (d, nm) in enumerate(zip(data, names)):
         xj = np.random.default_rng(0).normal(i, 0.055, len(d))
         ax.scatter(xj, d, s=7, c="#4C2A85" if i == 2 else "0.6", linewidths=0, zorder=3)
@@ -639,7 +554,8 @@ def panel_cnv_statistic_gain(ax, old_csv, new_csv):
         ax.text(i, 1.035, f"{np.median(d):.3f}", ha="center", va="bottom", fontsize=6,
                 color="#4C2A85" if i == 2 else "0.35")
     ax.axhline(0.5, color="0.5", ls="--", lw=0.6)
-    ax.text(2.42, 0.5, "no discrimination", fontsize=5.4, color="0.45", va="bottom", ha="right")
+    ax.text(1.01, 0.5, "chance", transform=ax.get_yaxis_transform(), fontsize=5.4,
+            color="0.45", va="center", ha="left")
     ax.set_xticks(range(3)); ax.set_xticklabels(names, fontsize=5.6)
     ax.set_ylim(0.25, 1.09); ax.set_ylabel("Malignant-vs-reference AUC,\nper sample")
     _despine(ax)
@@ -656,7 +572,6 @@ def panel_arm_scores(ax, csv, arms=("chr1p", "chr1q", "chr8p", "chr8q", "chr9p",
     the same arms sit at 0.574 and 0.526, and chr16q at 0.492 shows no loss
     signal at all. The arm scores are therefore NOT what rescued the caller.
     """
-    import pandas as pd, numpy as np
     d = pd.read_csv(csv)
     rng = np.random.default_rng(0)
     med = [np.nanmedian(d[a]) for a in arms]
@@ -667,11 +582,9 @@ def panel_arm_scores(ax, csv, arms=("chr1p", "chr1q", "chr8p", "chr8q", "chr9p",
                    c="#4C2A85" if i == best else "0.68", linewidths=0, zorder=3)
         ax.hlines(med[i], i - 0.3, i + 0.3, color="k", lw=1.2, zorder=4)
     ax.axhline(0.5, color="0.5", ls="--", lw=0.6)
-    ax.annotate(f"strongest arm {arms[best].replace('chr', '')}: median {med[best]:.3f}",
-                xy=(best, med[best]), xytext=(0.97, 0.03), textcoords="axes fraction",
-                ha="right", va="bottom", fontsize=5.6, color="#4C2A85",
-                arrowprops=dict(arrowstyle="-", color="#4C2A85", lw=0.5,
-                                shrinkA=0, shrinkB=2))
+    ax.text(best + 0.35, 0.88, f"{arms[best].replace('chr', '')}: strongest arm,\n"
+                                f"median {med[best]:.3f}",
+            ha="left", va="center", fontsize=5.6, color="#4C2A85", linespacing=1.15)
     ax.set_xticks(range(len(arms)))
     ax.set_xticklabels([a.replace("chr", "") for a in arms])
     ax.set_xlabel("Chromosome arm")
@@ -683,7 +596,6 @@ def panel_arm_scores(ax, csv, arms=("chr1p", "chr1q", "chr8p", "chr8q", "chr9p",
 
 def panel_evidence_bar(ax, csv):
     """How each frozen-malignant cell earned its label."""
-    import pandas as pd
     d = pd.read_csv(csv)
     order = ["marker_and_cna", "marker_only_cna_negative", "marker_only_cna_unassessed", "cna_only"]
     nice = {"marker_and_cna": "Markers and copy number",
@@ -717,7 +629,6 @@ def panel_evidence_bar(ax, csv):
 
 def panel_mp_occupancy(ax, csv):
     """Per metaprogram: how many samples and how many studies carry it."""
-    import pandas as pd, numpy as np
     d = pd.read_csv(csv).sort_values("samples", ascending=True)
     y = np.arange(len(d))
     single = d["max_study_share"].to_numpy() == 1.0
@@ -736,7 +647,6 @@ def panel_mp_occupancy(ax, csv):
 
 def panel_confounding_heatmap(ax, csv):
     """Candidate programs against the technical drivers that could explain them."""
-    import pandas as pd, numpy as np
     d = pd.read_csv(csv).set_index("program")
     nice_row = {"score_MP28": "MP28  NR0B1/PRKCB", "score_MP24": "MP24  fibroblast-like",
                 "score_MP1": "MP1  cell cycle", "score_MP3": "MP3  hypoxia-like",
@@ -766,64 +676,8 @@ def panel_confounding_heatmap(ax, csv):
     return ax
 
 
-def panel_mp24_origin(ax, csv):
-    """MP24 scored by how each cell entered the frozen malignant set."""
-    import pandas as pd, numpy as np
-    d = pd.read_csv(csv, index_col=0)
-    nice = {"cna_only": "Copy number only\n(rescued fibroblasts)", "marker_and_cna": "Markers and\ncopy number",
-            "marker_only_cna_negative": "Markers only,\nCNA negative",
-            "marker_only_cna_unassessed": "Markers only,\nCNA unassessed"}
-    d = d.loc[[i for i in ["cna_only", "marker_and_cna", "marker_only_cna_negative",
-                           "marker_only_cna_unassessed"] if i in d.index]]
-    y = np.arange(len(d))
-    ax.barh(y, d["score_MP24"], color=["#D7A32B" if i == "cna_only" else "#9B7FC0" for i in d.index],
-            height=0.6)
-    for yy, v in zip(y, d["score_MP24"]):
-        ax.text(v + 0.012, yy, f"{v:.3f}", va="center", fontsize=5.6, color="0.3")
-    ax.set_yticks(y); ax.set_yticklabels([nice[i] for i in d.index], fontsize=5.4)
-    ax.set_xlabel("Mean MP24 score")
-    ax.set_xlim(0, max(d["score_MP24"]) * 1.25)
-    _despine(ax)
-    return ax
-
-
-def panel_immune_umap(ax, adata, key="immune_subset", xy_all=None, mask=None):
-    """Immune subsets on their OWN embedding, with an atlas locator.
-
-    This must use ``X_umap_immune`` - a UMAP computed on the immune subset's own
-    neighbour graph - and not the atlas-wide ``X_umap`` restricted to these
-    cells. The restricted version is a cut-out of Figure 1: subsets sit wherever
-    they sat in a layout optimised for 138,353 cells, gaps appear where the
-    malignant mass was removed, and the locator inset becomes a duplicate of the
-    panel it sits on rather than a reference map.
-    """
-    import numpy as np
-    xy = adata.obsm["X_umap_immune"]
-    lab = adata.obs[key].astype(str).to_numpy()
-    order = [l for l in ["T_CD4", "T_cytotoxic", "NK", "Treg", "B_cell", "Plasma",
-                         "Monocyte", "Macrophage", "Macrophage_LAM", "cDC2", "pDC",
-                         "Mast", "Platelet", "Low_quality"] if l in set(lab)]
-    import matplotlib.cm as cm
-    cols = dict(zip(order, list(cm.tab20.colors)[:len(order)]))
-    cols["Low_quality"] = (0.82, 0.82, 0.82)
-    for l in order:
-        m = lab == l
-        ax.scatter(xy[m, 0], xy[m, 1], s=0.7, c=[cols[l]], linewidths=0, rasterized=True,
-                   label=f"{l.replace('_', ' ')} ({m.sum():,})")
-    _embedding_axes(ax)
-    ax.legend(loc="center left", bbox_to_anchor=(1.0, 0.5), frameon=False, fontsize=5,
-              markerscale=7, handletextpad=0.3, labelspacing=0.28, borderpad=0.1)
-    if xy_all is not None and mask is not None:
-        w = 0.17
-        h = w * ax.get_window_extent().width / max(ax.get_window_extent().height, 1)
-        ins = locator_inset(ax, xy_all, mask, loc=(0.0, 1.0 - min(h, 0.3), w, min(h, 0.3)))
-        ins.set_title("in the atlas", fontsize=5, color="0.45", pad=1.5)
-    return ax
-
-
 def panel_immune_markers(ax, adata, key="immune_subset"):
     """Marker evidence for the immune subsets, including the two corrected calls."""
-    import numpy as np, pandas as pd
     import scipy.sparse as sp
     PAN = [("T", ["CD3D", "CD3E", "IL7R"]), ("Cytotoxic", ["CD8A", "GZMK"]),
            ("NK", ["KLRF1", "GNLY", "NKG7"]), ("Treg", ["FOXP3", "CTLA4"]),
@@ -888,7 +742,6 @@ def panel_umap_by_sample(ax, d, seed=0):
     one question only - is any sample sitting apart from the rest - and the
     per-sample grid answers which.
     """
-    import numpy as np
     import matplotlib as mpl
 
     samples = sorted(d["sample"].astype(str).unique())
@@ -909,144 +762,10 @@ def panel_umap_by_sample(ax, d, seed=0):
     return ax
 
 
-ASSAY_ICON = {"10x_scRNA": "cell", "10x_snRNA": "nucleus", "CELseq2_scRNA": "well"}
 
-
-def _assay_glyph(ax, x, y, kind, r=0.016, color="#2B6CB0"):
-    """Droplet whole-cell, droplet nucleus, or plate well, drawn to scale."""
-    from matplotlib.patches import Circle, Rectangle
-    asp = ax.get_window_extent().width / max(ax.get_window_extent().height, 1)
-    if kind == "cell":
-        ax.add_patch(Circle((x, y), r, transform=ax.transAxes, facecolor="#EAF2FA",
-                            edgecolor=color, lw=0.8, zorder=3, clip_on=False))
-        ax.add_patch(Circle((x, y), r * 0.42, transform=ax.transAxes, facecolor="#E8A33D",
-                            edgecolor="#9C6B16", lw=0.5, zorder=4, clip_on=False))
-    elif kind == "nucleus":
-        ax.add_patch(Circle((x, y), r * 0.52, transform=ax.transAxes, facecolor="#E8A33D",
-                            edgecolor="#9C6B16", lw=0.6, zorder=3, clip_on=False))
-    else:   # plate well
-        ax.add_patch(Rectangle((x - r, y - r * asp), 2 * r, 2 * r * asp, transform=ax.transAxes,
-                               facecolor="#FBF1DA", edgecolor="#9C6B16", lw=0.8, zorder=3,
-                               clip_on=False))
-        ax.add_patch(Circle((x, y), r * 0.34, transform=ax.transAxes, facecolor="#E8A33D",
-                            edgecolor="#9C6B16", lw=0.4, zorder=4, clip_on=False))
-
-
-def panel_cohort_schematic(ax, g, d, totals):
-    """The 'included datasets' schematic: one column per study, one row per fact.
-
-    Modelled on NBAtlas Figure 1A. Everything plotted here is read from the
-    released object, so the panel cannot drift from the atlas it describes.
-    """
-    import numpy as np
-    from matplotlib.patches import Rectangle, FancyArrow
-
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_xticks([]); ax.set_yticks([])
-    for sp in ax.spines.values():
-        sp.set_visible(False)
-
-    L0, L1, B0, B1 = 0.015, 0.235, 0.245, 0.615          # label block, study block
-    ax.add_patch(Rectangle((L0, 0.02), B1 - L0, 0.95, transform=ax.transAxes,
-                           facecolor="none", edgecolor="0.25", lw=0.9, clip_on=False))
-    ax.add_patch(Rectangle((L0, 0.02), L1 - L0, 0.95, transform=ax.transAxes,
-                           facecolor="0.90", edgecolor="none", clip_on=False, zorder=0))
-
-    studies = list(g.index)
-    xs = np.linspace(B0, B1, len(studies) + 1)
-    xc = (xs[:-1] + xs[1:]) / 2
-    R_STUDY, R_ASSAY, R_SAMP, R_PAT, R_CELL = 0.90, 0.775, 0.56, 0.355, 0.175
-
-    for lbl, y in (("Study", R_STUDY), ("Assay", R_ASSAY), ("Number of\nsamples", R_SAMP + 0.045),
-                   ("Patients", R_PAT), ("Number of\ncells", R_CELL)):
-        ax.text(L0 + 0.014, y, lbl, transform=ax.transAxes, ha="left", va="center",
-                fontsize=6.0, fontweight="bold", color="0.15", linespacing=1.15)
-
-    # The assay key used to be three glyph rows straddling the data row, so the
-    # key entries read as row labels aligned to the icons. Each study now names
-    # its own assay under its glyph and no key is needed.
-    ASSAY_WORD = {"cell": "single-\ncell", "nucleus": "single-\nnucleus",
-                  "well": "plate\nwell"}
-
-    smax = float(g["samples"].max())
-    base, height = R_SAMP - 0.075, 0.175
-    ax.plot([B0 - 0.012, B0 - 0.012], [base, base + height], color="0.35", lw=0.7,
-            transform=ax.transAxes, clip_on=False)
-    for v in (0, int(smax // 2), int(smax)):
-        yy = base + height * v / smax
-        ax.plot([B0 - 0.019, B0 - 0.012], [yy, yy], color="0.35", lw=0.7,
-                transform=ax.transAxes, clip_on=False)
-        ax.text(B0 - 0.024, yy, str(v), transform=ax.transAxes, ha="right", va="center",
-                fontsize=4.8, color="0.3")
-
-    cmax = float(g["cells"].max())
-    for i, (lab, v) in enumerate((("1K", 1_000), ("10K", 10_000), ("50K", 50_000))):
-        yy = R_CELL + 0.072 - i * 0.058
-        ax.scatter([L1 - 0.022], [yy], s=max(2.5, 150 * v / cmax), c="0.45",
-                   transform=ax.transAxes, clip_on=False, linewidths=0)
-        ax.text(L1 - 0.040, yy, lab, transform=ax.transAxes, ha="right", va="center",
-                fontsize=4.6, color="0.3")
-
-    for i, st in enumerate(studies):
-        col = SCOLOR.get(st, "#4C2A85")
-        row = g.loc[st]
-        ax.text(xc[i], R_STUDY, SPRETTY.get(st, st).replace(" ", "\n"), transform=ax.transAxes,
-                ha="center", va="center", fontsize=6.0, fontweight="bold", color="0.1",
-                linespacing=1.1)
-        kind = ASSAY_ICON.get(str(row["assays"]), "cell")
-        _assay_glyph(ax, xc[i], R_ASSAY + 0.038, kind)
-        ax.text(xc[i], R_ASSAY - 0.048, ASSAY_WORD[kind], transform=ax.transAxes,
-                ha="center", va="center", fontsize=4.6, color="0.3", linespacing=1.15)
-        w = (xs[1] - xs[0]) * 0.42
-        h = height * row["samples"] / smax
-        ax.add_patch(Rectangle((xc[i] - w / 2, base), w, h, transform=ax.transAxes,
-                               facecolor=col, edgecolor="none", clip_on=False))
-        ax.text(xc[i], base + 0.012, f"{int(row['samples'])}", transform=ax.transAxes,
-                ha="center", va="bottom", fontsize=5.2, color="w" if h > 0.04 else "0.2")
-        ax.text(xc[i], R_PAT, f"{int(row['patients'])}", transform=ax.transAxes, ha="center",
-                va="center", fontsize=6.0, color="0.15")
-        s_ = max(3.0, 150 * row["cells"] / cmax)
-        ax.scatter([xc[i]], [R_CELL], s=s_, c=col, transform=ax.transAxes, clip_on=False,
-                   linewidths=0, zorder=3)
-        k = row["cells"] / 1000
-        txt = f"{k:.0f}K" if k >= 10 else f"{k:.1f}K"
-        if s_ > 110:
-            ax.text(xc[i], R_CELL, txt, transform=ax.transAxes, ha="center", va="center",
-                    fontsize=4.8, color="w", zorder=4)
-        else:
-            ax.text(xc[i], R_CELL - 0.055, txt, transform=ax.transAxes, ha="center",
-                    va="center", fontsize=4.8, color="0.2", zorder=4)
-
-    # integration box
-    ax.add_patch(FancyArrow(0.645, 0.50, 0.045, 0, width=0.006, head_width=0.022,
-                            head_length=0.018, transform=ax.transAxes, color="0.25",
-                            length_includes_head=True, clip_on=False))
-    ax.add_patch(Rectangle((0.715, 0.17), 0.275, 0.64, transform=ax.transAxes,
-                           facecolor="none", edgecolor="0.25", lw=0.9, clip_on=False))
-    ax.text(0.8525, 0.845, "Integration", transform=ax.transAxes, ha="center", va="bottom",
-            fontsize=6.2, fontweight="bold", color="0.15")
-    _assay_glyph(ax, 0.762, 0.745, "cell", r=0.013)
-    ax.text(0.782, 0.745, "scvi-tools", transform=ax.transAxes, ha="left", va="center",
-            fontsize=6.6, color="0.1")
-    ins = ax.inset_axes((0.735, 0.30, 0.235, 0.36))
-    rng = np.random.default_rng(0)
-    sel = rng.choice(len(d), min(25000, len(d)), replace=False)
-    dd = d.iloc[sel]
-    ins.scatter(dd["umap1"], dd["umap2"], s=0.35, linewidths=0, rasterized=True,
-                c=[SCOLOR.get(s, "#4C2A85") for s in dd["study"].astype(str)])
-    ins.set_xticks([]); ins.set_yticks([])
-    for sp in ins.spines.values():
-        sp.set_linewidth(0.4); sp.set_color("0.7")
-    ax.text(0.8525, 0.265, f"n = {totals['studies']} studies   "
-                           f"n = {totals['samples']} samples\n"
-                           f"n = {totals['patients']} patients   "
-                           f"n = {totals['cells']:,} cells",
-            transform=ax.transAxes, ha="center", va="top", fontsize=5.4, color="0.25",
-            style="italic", linespacing=1.4)
-    return ax
 
 def _hsv_map(levels, seed=0):
     """Evenly spaced hues, shuffled so neighbouring levels are unlike."""
-    import numpy as np
     import matplotlib as mpl
 
     rng = np.random.default_rng(seed)
@@ -1062,7 +781,6 @@ def panel_umap_triple(ax, d, horizontal=False):
     ``horizontal`` lays them side by side, which is what a full-width
     supplementary row needs; stacked is the original narrow-column form.
     """
-    import numpy as np
 
     ax.set_xticks([]); ax.set_yticks([])
     for sp in ax.spines.values():
@@ -1099,148 +817,6 @@ def panel_umap_triple(ax, d, horizontal=False):
             a.text(1.04, 0.5, f"{d[col].nunique()} samples\n(no legend:\ntoo many to read)",
                    transform=a.transAxes, fontsize=4.6, color="0.35", va="center", ha="left",
                    linespacing=1.3)
-    return ax
-
-
-def panel_circular_atlas(ax, d, rings=("sample", "study"), aspect_wh=1.0):
-    """Annotated embedding ringed by the metadata composition of each cell type.
-
-    Follows the NBAtlas Figure 1C construction:
-
-    * one arc per cell type, all arcs the SAME angular width. The arcs show
-      composition, not abundance - sizing them by cell count would give the
-      malignant compartment two thirds of the circle and squeeze every immune
-      type into a sliver, which is the opposite of what the panel is for.
-    * each arc carries a solid outer band in the cell type's colour, then one
-      band per metadata variable. A type drawn from one sample or one study
-      reads as a solid band; a pooled type reads as fine stripes.
-    * cell-type names sit outside their arc, set tangentially.
-    * inside, each type's island is outlined by a density contour. The contours
-      are NOT labelled: the arc label already names every type and the embedding
-      is coloured by the same scale, so on-plot text repeated eight of the
-      fifteen names inside a panel that already printed them outside.
-
-    Two bands by default, not four. Assay and cluster were dropped because assay
-    is already a row of panel A and cluster is Figure S3's subject; five nested
-    encodings in one panel is more than a reader will decode, and the two kept -
-    sample and study - are the ones that show whether a cell type is pooled or
-    comes from one deposit.
-
-    ``aspect_wh`` is the axes' width/height ratio. When the panel is wider than
-    it is tall the circle stays sized by the HEIGHT and the freed width carries
-    the keys, so widening the panel does not force the figure taller.
-    """
-    import numpy as np
-    from matplotlib.patches import Wedge
-    from scipy.stats import gaussian_kde
-
-    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
-    for sp in ax.spines.values():
-        sp.set_visible(False)
-    ax.set_ylim(-1.78, 1.78)
-    ax.set_xlim(-1.78, -1.78 + 3.56 * max(1.0, float(aspect_wh)))
-
-    xy = d[["umap1", "umap2"]].to_numpy().astype(float)
-    xy = xy - (xy.min(0) + xy.max(0)) / 2
-    xy = xy / np.abs(xy).max() * 0.92
-    ct = d["cell_type"].astype(str).to_numpy()
-    rng = np.random.default_rng(0)
-    idx = rng.permutation(len(d))
-    ax.scatter(xy[idx, 0], xy[idx, 1], s=0.11, linewidths=0, rasterized=True,
-               c=[CT_COLOR.get(c, GREY) for c in ct[idx]])
-
-    order = [c for c in CT_ORDER if (ct == c).sum() > 0]
-    gx, gy = np.mgrid[-1.0:1.0:160j, -1.0:1.0:160j]
-    grid = np.vstack([gx.ravel(), gy.ravel()])
-    # Only compact classes get a contour and an on-plot label. A kernel density
-    # contour around a dispersed class (Unassigned, Plasma) encloses mostly
-    # empty space and asserts an island that is not there; those types are
-    # identified by their arc label instead.
-    for c in [x for x in order if x in DIRECT]:
-        pts = xy[ct == c]
-        if len(pts) < 150:
-            continue
-        sub = pts[rng.choice(len(pts), min(2500, len(pts)), replace=False)]
-        try:
-            k = gaussian_kde(sub.T, bw_method=0.35)
-        except Exception:
-            continue
-        z = k(grid).reshape(gx.shape)
-        at_pts = k(sub.T)
-        lvl = float(np.quantile(at_pts, 0.14))          # contour enclosing ~86% of the type
-        ax.contour(gx, gy, z, levels=[lvl], colors=["#8A7F55"], linewidths=0.45, alpha=0.9)
-
-    # --- arcs: equal width per cell type
-    gap = 2.2
-    span = (360 - gap * len(order)) / len(order)
-    starts = 90.0 + np.arange(len(order)) * (span + gap)
-    r0, dr = 1.015, 0.052
-    cmaps = {}
-    for k_, var in enumerate(rings):
-        lv = sorted(d[var].astype(str).unique())
-        cmaps[var] = ({s: SCOLOR[s] for s in STUDY_ORDER} if var == "study" else
-                      ASSAYC if var == "assay" else _hsv_map(lv, seed=k_))
-    for i, c in enumerate(order):
-        sel = d[ct == c]
-        a0 = starts[i]
-        for k_, var in enumerate(rings):
-            vc = sel[var].astype(str).value_counts()
-            frac = (vc / vc.sum()).to_dict()
-            off = 0.0
-            for lv in sorted(frac, key=lambda x: -frac[x]):
-                w = span * frac[lv]
-                ax.add_patch(Wedge((0, 0), r0 + (k_ + 1) * dr, a0 + off, a0 + off + w,
-                                   width=dr * 0.80,
-                                   facecolor=cmaps[var].get(lv, "0.7"), edgecolor="none"))
-                off += w
-        ax.add_patch(Wedge((0, 0), r0 + (len(rings) + 1) * dr, a0, a0 + span,
-                           width=dr * 1.05, facecolor=CT_COLOR.get(c, GREY), edgecolor="none"))
-        mid = a0 + span / 2
-        rr = r0 + (len(rings) + 1) * dr + 0.035
-        th = np.deg2rad(mid)
-        east = np.cos(th) >= 0
-        ax.text(rr * np.cos(th), rr * np.sin(th), PRETTY.get(c, c), fontsize=4.8, color="0.15",
-                ha="left" if east else "right", va="center",
-                rotation=mid if east else mid - 180, rotation_mode="anchor")
-
-    names = {"sample": "Sample", "assay": "Assay", "study": "Study", "leiden": "Cluster"}
-    from matplotlib.patches import Rectangle as _Rect
-    wide = float(aspect_wh) > 1.25
-    kx = 2.05 if wide else -1.66
-    ky = 1.25 if wide else -1.66
-    kw, kh = 0.11, 0.105
-    items = list(reversed([names[v] for v in rings] + ["Cell type"]))
-    for k_, nm in enumerate(items):
-        ax.add_patch(_Rect((kx, ky - k_ * kh), kw, kh * 0.72,
-                           facecolor=CT_COLOR["Ewing_sarcoma"] if nm == "Cell type" else "0.82",
-                           edgecolor="0.45", lw=0.3))
-        ax.text(kx + kw + 0.05, ky - k_ * kh + kh * 0.36, nm, fontsize=5.0, color="0.25",
-                ha="left", va="center")
-    ax.text(kx, ky + kh * 1.05, "Bands, outer to inner", fontsize=5.0,
-            color="0.3", ha="left", va="bottom")
-    if wide:
-        # The freed width carries the two keys the panel needs. The cell-type key
-        # is not decoration: the contours inside carry no text any more, so
-        # colour is the only way to read the embedding.
-        sy = ky - (len(items) + 1.2) * kh
-        ax.text(kx, sy + kh * 0.95, "Study", fontsize=5.0, color="0.3", ha="left", va="bottom")
-        studies = [s for s in STUDY_ORDER if s in set(d["study"].astype(str))]
-        for k_, s in enumerate(studies):
-            ax.add_patch(_Rect((kx, sy - k_ * kh), kw, kh * 0.72,
-                               facecolor=SCOLOR[s], edgecolor="none"))
-            ax.text(kx + kw + 0.05, sy - k_ * kh + kh * 0.36, SPRETTY[s], fontsize=5.0,
-                    color="0.25", ha="left", va="center")
-        cy = sy - (len(studies) + 1.2) * kh
-        ax.text(kx, cy + kh * 0.95, "Cell type", fontsize=5.0, color="0.3",
-                ha="left", va="bottom")
-        half = (len(order) + 1) // 2
-        for k_, c in enumerate(order):
-            col, rowi = divmod(k_, half)
-            x = kx + col * 1.34
-            ax.add_patch(_Rect((x, cy - rowi * kh), kw, kh * 0.72,
-                               facecolor=CT_COLOR.get(c, GREY), edgecolor="none"))
-            ax.text(x + kw + 0.05, cy - rowi * kh + kh * 0.36, PRETTY.get(c, c),
-                    fontsize=5.0, color="0.25", ha="left", va="center")
     return ax
 
 
@@ -1419,7 +995,7 @@ def panel_target_landscape(ax, csv):
     for frac in (25, 50, 75):
         ax.scatter([], [], s=(frac / 100) * 95 + 2, c="0.75", edgecolor="0.4",
                    linewidth=0.3, label=f"{frac}%")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.17), frameon=False, fontsize=5.0,
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), frameon=False, fontsize=5.0,
               ncol=3, handletextpad=0.25, columnspacing=0.8, title="Cells positive",
               title_fontsize=5.0)
     for sp in ("right", "top"):
@@ -1459,28 +1035,6 @@ def panel_target_margin(ax, csv):
     return ax
 
 
-def panel_loso_accuracy(ax, csv, csv_type=None):
-    """Label transfer onto a study the reference never saw."""
-    d = pd.read_csv(csv).sort_values("accuracy")
-    y = np.arange(len(d))
-    ax.barh(y, d["accuracy"], height=0.52, color=[SCOLOR.get(s, GREY) for s in d.held_out],
-            edgecolor="w", linewidth=0.4)
-    for i, (_, r) in enumerate(d.iterrows()):
-        ax.text(r["accuracy"] + 0.012, i, f"{r['accuracy']:.2f}", va="center",
-                fontsize=5.2, color="0.25")
-    ax.set_yticks(y)
-    ax.set_yticklabels([f"{SPRETTY.get(s, s)}\n({n:,} cells)" for s, n in
-                        zip(d.held_out, d.n_query)], fontsize=5.2, linespacing=1.15)
-    ax.set_xlim(0, 1.08); ax.set_xlabel("Agreement with full-atlas annotation")
-    med = float(d["accuracy"].median())
-    ax.axvline(med, color="0.35", lw=0.7, ls=(0, (3, 2)))
-    ax.text(med, len(d) - 0.35, f"median {med:.2f}", fontsize=5.0, color="0.35",
-            ha="center", va="bottom")
-    for sp in ("right", "top"):
-        ax.spines[sp].set_visible(False)
-    return ax
-
-
 def panel_bulk_survival(ax, csv, frac_csv=None):
     """Hazard ratios per standard deviation of atlas-derived composition."""
     d = pd.read_csv(csv)
@@ -1510,7 +1064,534 @@ def panel_bulk_survival(ax, csv, frac_csv=None):
     hs = [plt.Line2D([], [], marker="o", ls="-", ms=3.6, color=cmap[e], mec="w", mew=0.4)
           for e in ["OS", "EFS"]]
     ax.legend(hs, ["Overall survival", "Event-free survival"], loc="lower left",
-              frameon=False, fontsize=5.0, handletextpad=0.3, labelspacing=0.25)
+              bbox_to_anchor=(0.0, 1.0), ncol=2, frameon=False, fontsize=5.0,
+              handletextpad=0.3, columnspacing=1.2, borderaxespad=0.2)
     for sp in ("right", "top"):
         ax.spines[sp].set_visible(False)
     return ax
+
+
+# --- sample composition, compartment and reference panels ---
+
+#: immune subsets: lymphoid in blues/purples, myeloid in greens, mast and
+#: platelet in their atlas-level colours, so the immune figure reads as a
+#: zoom into Figure 1 rather than a new colour key
+IMM_ORDER = ["T_CD4", "T_cytotoxic", "Treg", "NK", "B_cell", "Plasma", "Monocyte",
+             "Macrophage", "Macrophage_LAM", "cDC2", "pDC", "Mast", "Platelet", "Low_quality"]
+IMM_COLOR = {"T_CD4": "#1F6FB4", "T_cytotoxic": "#9ECAE1", "Treg": "#08306B",
+             "NK": "#17A2B8", "B_cell": "#6A51A3", "Plasma": "#BCA9E0",
+             "Monocyte": "#117733", "Macrophage": "#74C476", "Macrophage_LAM": "#B8A21E",
+             "cDC2": "#4D7F17", "pDC": "#8DD3C7", "Mast": CT_COLOR["Mast"],
+             "Platelet": CT_COLOR["Platelet"], "Low_quality": "#D0D0D0"}
+IMM_PRETTY = {"T_CD4": "CD4 T", "T_cytotoxic": "Cytotoxic T", "Treg": "Treg", "NK": "NK",
+              "B_cell": "B cell", "Plasma": "Plasma", "Monocyte": "Monocyte",
+              "Macrophage": "Macrophage", "Macrophage_LAM": "LAM macrophage",
+              "cDC2": "cDC2", "pDC": "pDC", "Mast": "Mast", "Platelet": "Platelet",
+              "Low_quality": "Low quality"}
+DSTATE = ["primary", "metastasis", "recurrence", "normal", "not_reported"]
+DSTATEP = {"primary": "Primary", "metastasis": "Metastasis", "recurrence": "Recurrence",
+           "normal": "Normal tissue", "not_reported": "Not reported"}
+DSTATEC = dict(zip(DSTATE, ["#4C72B0", "#C44E52", "#DD8452", "#55A868", "#E5E5E5"]))
+TREAT = ["treatment_naive", "post_treatment", "not_reported"]
+TREATP = {"treatment_naive": "Treatment-naive", "post_treatment": "Post-treatment",
+          "not_reported": "Not reported"}
+TREATC = dict(zip(TREAT, ["#8DA0CB", "#E78AC3", "#E5E5E5"]))
+NR = "#E5E5E5"
+
+
+def _keyfont(ax, **kw):
+    base = dict(frameon=False, fontsize=5.2, handletextpad=0.3, labelspacing=0.22,
+                borderpad=0.05, handlelength=0.9)
+    base.update(kw)
+    return ax.legend(**base)
+
+
+# ================================================================ Figure 1 ===
+
+def panel_flowchart(ax, steps):
+    """Study design as a left-to-right pipeline; every n is computed upstream.
+
+    ``steps`` is a list of (heading, detail) pairs.
+    """
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
+    n = len(steps)
+    gap = 0.022
+    w = (1 - gap * (n - 1)) / n
+    fills = ["#F2EEF7", "#EEF2F7", "#EEF2F7", "#EEF2F7", "#EEF2F7", "#F7F2E8"]
+    for i, (head, detail) in enumerate(steps):
+        x = i * (w + gap)
+        ax.add_patch(FancyBboxPatch((x, 0.06), w, 0.86, boxstyle="round,pad=0,rounding_size=0.025",
+                                    transform=ax.transAxes, fc=fills[i % len(fills)], ec="0.55",
+                                    lw=0.6, mutation_aspect=ax.get_window_extent().width
+                                    / max(ax.get_window_extent().height, 1)))
+        ax.text(x + w / 2, 0.80, head, ha="center", va="center", fontsize=6.0,
+                fontweight="bold", color="0.12", transform=ax.transAxes)
+        ax.text(x + w / 2, 0.42, detail, ha="center", va="center", fontsize=5.0,
+                color="0.25", transform=ax.transAxes, linespacing=1.3)
+        if i < n - 1:
+            ax.add_patch(FancyArrowPatch((x + w + 0.002, 0.49), (x + w + gap - 0.002, 0.49),
+                                         transform=ax.transAxes, arrowstyle="-|>",
+                                         mutation_scale=6, color="0.35", lw=0.7))
+
+
+def panel_umap_hero(ax, d):
+    """The atlas: every coherent class named on the map, dispersed ones keyed."""
+    rng = np.random.default_rng(0)
+    dd = d.iloc[rng.permutation(len(d))]
+    cols = dd["cell_type"].astype(str).map(CT_COLOR).to_numpy()
+    ax.scatter(dd["umap1"], dd["umap2"], s=0.35, lw=0, c=cols, rasterized=True, alpha=0.75)
+    _embedding_axes(ax)
+    counts = d["cell_type"].astype(str).value_counts()
+    for lvl in (c for c in CT_ORDER if c in DIRECT):
+        s = d[d.cell_type == lvl]
+        if not len(s):
+            continue
+        ax.text(s.umap1.median(), s.umap2.median(), f"{PRETTY[lvl]}\n{counts[lvl]:,}",
+                fontsize=5.4, ha="center", va="center", linespacing=1.05, color="0.1",
+                bbox=dict(fc="white", ec="none", alpha=0.72, pad=0.5))
+    rest = [c for c in CT_ORDER if c not in DIRECT and c in counts]
+    hs = [plt.Line2D([], [], marker="o", ls="", ms=3.2, mfc=CT_COLOR[c], mec="none") for c in rest]
+    _keyfont(ax, handles=hs, labels=[f"{PRETTY[c]} ({counts[c]:,})" for c in rest],
+             loc="lower left", bbox_to_anchor=(1.0, 0.0), title="Not labelled on map",
+             title_fontsize=5.2, alignment="left")
+
+
+def panel_umap_meta(ax, d):
+    """Two small embeddings stacked: by study and by assay, each with a key."""
+    ax.axis("off")
+    rng = np.random.default_rng(1)
+    dd = d.iloc[rng.permutation(len(d))[:60000]]
+    specs = [("study", STUDY_ORDER, SCOLOR, SPRETTY, "Study"),
+             ("assay", list(ASSAYP), ASSAYC, ASSAYP, "Assay")]
+    for k, (col, order, cmap, pretty, title) in enumerate(specs):
+        sub = ax.inset_axes([0.0, 0.52 - 0.52 * k, 0.56, 0.46])
+        c = dd[col].astype(str).map(cmap).fillna(GREY).to_numpy()
+        sub.scatter(dd["umap1"], dd["umap2"], s=0.15, lw=0, c=c, rasterized=True)
+        sub.set_xticks([]); sub.set_yticks([])
+        for sp in sub.spines.values():
+            sp.set_visible(False)
+        present = [o for o in order if (d[col].astype(str) == o).any()]
+        hs = [plt.Line2D([], [], marker="o", ls="", ms=3.0, mfc=cmap[o], mec="none") for o in present]
+        sub.legend(hs, [pretty[o] for o in present], loc="center left", bbox_to_anchor=(1.0, 0.5),
+                   frameon=False, fontsize=5.0, handletextpad=0.25, labelspacing=0.18,
+                   borderpad=0.0, handlelength=0.8, title=title, title_fontsize=5.4,
+                   alignment="left")
+
+
+def panel_cohort_bars(ax, coh):
+    """Cells per study (bar colour = assay, keyed in panel C); patients and
+    samples ride in the row labels, which stay legible at any panel width."""
+    coh = coh.loc[[st for st in STUDY_ORDER if st in coh.index]][::-1]
+    y = np.arange(len(coh))
+    ax.barh(y, coh["cells"], height=0.6, color=[ASSAYC[a] for a in coh["assay"]], lw=0)
+    xmax = float(coh["cells"].max())
+    for i, (_, r) in enumerate(coh.iterrows()):
+        inside = r["cells"] > 0.6 * xmax
+        ax.text(r["cells"] + (-0.03 if inside else 0.03) * xmax, i, f"{r['cells']:,}",
+                va="center", ha="right" if inside else "left", fontsize=5.0,
+                color="white" if inside else "0.2")
+    ax.set_xlim(0, xmax * 1.08)
+    ax.set_yticks(y)
+    ax.set_yticklabels([f"{SPRETTY[st]}\n{int(r['patients'])} patients, {int(r['samples'])} samples"
+                        for st, r in coh.iterrows()], fontsize=5.4, linespacing=1.15)
+    ax.set_xlabel("Cells after QC")
+    ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(25000 if xmax < 60000 else 50000))
+    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, p: f"{v/1000:.0f}k"))
+    _despine(ax)
+
+
+# ================================================================ Figure 2 ===
+
+def panel_loso_grid(ax, by_ct, overall, min_n=20):
+    """Leave-one-study-out label transfer: recall per held-out study x cell type.
+
+    Cells with fewer than ``min_n`` query cells are shown hatched rather than
+    coloured: a recall over two cells is not a measurement.
+    """
+    studies = [s for s in STUDY_ORDER if s in set(by_ct.held_out)]
+    present = by_ct.groupby("cell_type")["n"].sum()
+    types = [c for c in CT_ORDER if c in present.index and present[c] > 0]
+    R = by_ct.pivot(index="held_out", columns="cell_type", values="recall").reindex(studies)[types]
+    N = by_ct.pivot(index="held_out", columns="cell_type", values="n").reindex(studies)[types]
+    show = R.where(N >= min_n)
+    im = ax.imshow(show.to_numpy(dtype=float), cmap="Purples", vmin=0, vmax=1, aspect="auto")
+    for i in range(len(studies)):
+        for j in range(len(types)):
+            n = N.iat[i, j]
+            if pd.isna(n):
+                continue
+            if n < min_n:
+                ax.add_patch(Rectangle((j - 0.5, i - 0.5), 1, 1, fc="white", ec="0.8",
+                                       hatch="////", lw=0))
+            else:
+                v = R.iat[i, j]
+                ax.text(j, i, f"{100 * v:.0f}", ha="center", va="center", fontsize=4.6,
+                        color="white" if v > 0.6 else "0.2")
+    ax.set_xticks(range(len(types)))
+    ax.set_xticklabels([PRETTY[t] for t in types], rotation=90, fontsize=5.2)
+    acc = overall.set_index("held_out").reindex(studies)
+    ax.set_yticks(range(len(studies)))
+    ax.set_yticklabels([f"{SPRETTY[s]}  {100 * a:.0f}%" for s, a in zip(studies, acc["accuracy"])],
+                       fontsize=5.4)
+    ax.set_ylabel("Held-out study  (overall agreement)", fontsize=5.8)
+    ax.tick_params(length=0)
+    cb = ax.figure.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
+    cb.set_label("Recall, % of held-out cells", fontsize=5.4)
+    cb.ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, p: f"{100 * v:.0f}"))
+    cb.ax.tick_params(labelsize=5.0, length=1.5); cb.outline.set_visible(False)
+    ax.add_patch(Rectangle((0, 0), 0, 0, fc="white", ec="0.6", hatch="////",
+                           label=f"< {min_n} cells"))
+    _keyfont(ax, loc="upper left", bbox_to_anchor=(1.0, 1.08), handlelength=1.2)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+
+# ================================================================ Figure 3 ===
+
+def _sample_table(d):
+    meta = (d.groupby("sample", observed=True)
+              .agg(study=("study", "first"), material=("material_type", "first"),
+                   disease=("disease_state", "first"), treat=("treatment_timing", "first"),
+                   n=("study", "size")))
+    for c in ("study", "material", "disease", "treat"):
+        meta[c] = meta[c].astype(str)
+    comp = pd.crosstab(d["sample"], d["cell_type"].astype(str), normalize="index")
+    comp = comp[[c for c in CT_ORDER if c in comp.columns]]
+    meta["malignant"] = comp[[c for c in ("Ewing_sarcoma", "Ewing_proliferating")
+                              if c in comp]].sum(1)
+    meta["study_rank"] = meta["study"].map({s: i for i, s in enumerate(STUDY_ORDER)})
+    meta = meta.sort_values(["study_rank", "malignant"], ascending=[True, False])
+    return meta, comp.loc[meta.index]
+
+
+def panel_sample_composition(ax, d):
+    """Cell-type composition of every sample, grouped by study, with clinical strips."""
+    meta, comp = _sample_table(d)
+    x = np.arange(len(meta))
+    bottom = np.zeros(len(meta))
+    for c in comp.columns:
+        ax.bar(x, comp[c].to_numpy(), bottom=bottom, width=0.92, color=CT_COLOR[c], lw=0)
+        bottom += comp[c].to_numpy()
+    ax.set_xlim(-0.6, len(meta) - 0.4); ax.set_ylim(0, 1)
+    ax.set_ylabel("Share of cells")
+    ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(1.0, decimals=0))
+    ax.set_xticks([])
+    _despine(ax, keep=("left",))
+    # cells per sample, as a thin bar row above
+    top = ax.inset_axes([0.0, 1.03, 1.0, 0.16], sharex=ax)
+    top.bar(x, meta["n"], width=0.92, color="0.55", lw=0)
+    top.set_yscale("log"); top.set_ylim(10, meta["n"].max() * 1.6)
+    top.set_yticks([100, 10000]); top.set_yticklabels(["100", "10k"], fontsize=4.6)
+    top.yaxis.set_minor_locator(mpl.ticker.NullLocator())
+    top.set_ylabel("Cells", fontsize=5.0, rotation=0, ha="right", va="center")
+    top.tick_params(axis="x", bottom=False, labelbottom=False, length=0)
+    top.tick_params(axis="y", length=1.5, pad=1)
+    for sp in ("top", "right", "bottom"):
+        top.spines[sp].set_visible(False)
+    # annotation strips below, each with its key on the same row to the right
+    strips = [("Study", "study", SCOLOR, SPRETTY),
+              ("Material", "material", MATC, MATP),
+              ("Disease state", "disease", DSTATEC, DSTATEP),
+              ("Treatment", "treat", TREATC, TREATP)]
+    h, gap = 0.055, 0.014
+    for k, (lab, col, cmap, pretty) in enumerate(strips):
+        y0 = -0.075 - k * (h + gap)
+        st = ax.inset_axes([0.0, y0, 1.0, h], sharex=ax)
+        st.bar(x, np.ones(len(meta)), width=1.0, lw=0,
+               color=[cmap.get(v, NR) for v in meta[col]])
+        st.set_ylim(0, 1); st.set_yticks([]); st.set_xticks([])
+        for sp in st.spines.values():
+            sp.set_visible(False)
+        st.text(-0.006, 0.5, lab, transform=st.transAxes, ha="right", va="center", fontsize=5.2)
+        cats = [c for c in cmap if c in set(meta[col])]
+        hs = [Rectangle((0, 0), 1, 1, fc=cmap[c], ec="0.7" if cmap[c] == NR else "none", lw=0.3)
+              for c in cats]
+        leg = ax.legend(hs, [pretty[c] for c in cats], loc="center left",
+                        bbox_to_anchor=(1.005, y0 + h / 2), ncol=len(cats) if len(cats) < 4 else 3,
+                        frameon=False, fontsize=4.8, handletextpad=0.25, columnspacing=0.6,
+                        handlelength=0.8, borderpad=0.0, labelspacing=0.1)
+        ax.add_artist(leg)
+    bounds = np.flatnonzero(meta["study"].to_numpy()[1:] != meta["study"].to_numpy()[:-1]) + 0.5
+    for b in bounds:
+        ax.axvline(b, color="white", lw=0.8)
+    cts = list(comp.columns)
+    _keyfont(ax, handles=[Rectangle((0, 0), 1, 1, fc=CT_COLOR[c]) for c in cts],
+             labels=[PRETTY[c] for c in cts], loc="upper left", bbox_to_anchor=(1.005, 1.19),
+             title="Cell type", title_fontsize=5.4, alignment="left")
+
+
+def panel_composition_by_material(ax, d):
+    """Mean per-sample composition by material: what each source contributes."""
+    meta, comp = _sample_table(d)
+    groups = [m for m in MAT if m in set(meta["material"])]
+    y = np.arange(len(groups))[::-1]
+    for gi, g in zip(y, groups):
+        sel = comp[meta["material"] == g].mean()
+        left = 0.0
+        for c in comp.columns:
+            ax.barh(gi, sel[c], left=left, height=0.62, color=CT_COLOR[c], lw=0)
+            left += sel[c]
+    ax.set_yticks(y)
+    ax.set_yticklabels([f"{MATP[g]}\n({(k := int((meta['material'] == g).sum()))} sample{'s' if k != 1 else ''})"
+                        for g in groups],
+                       fontsize=5.4, linespacing=1.1)
+    ax.set_xlim(0, 1)
+    ax.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(1.0, decimals=0))
+    ax.set_xlabel("Mean share of cells per sample")
+    _despine(ax)
+
+
+def panel_study_celltype_grid(ax, d):
+    """Which study contributes which cell type: dot size = cells (log)."""
+    tab = pd.crosstab(d["study"].astype(str), d["cell_type"].astype(str))
+    studies = [s for s in STUDY_ORDER if s in tab.index]
+    types = [c for c in CT_ORDER if c in tab.columns]
+    tab = tab.loc[studies, types]
+    X, Y = np.meshgrid(np.arange(len(types)), np.arange(len(studies)))
+    v = tab.to_numpy().astype(float)
+    size = np.where(v > 0, 4 + 16 * np.log10(np.maximum(v, 1)), 0)
+    share = tab.div(tab.sum(0), axis=1).to_numpy()
+    sc = ax.scatter(X.ravel(), Y.ravel(), s=size.ravel(), c=share.ravel(), cmap="Purples",
+                    vmin=0, vmax=1, edgecolor="0.4", lw=0.25)
+    ax.set_xticks(range(len(types)))
+    ax.set_xticklabels([PRETTY[t] for t in types], rotation=90, fontsize=5.2)
+    ax.set_yticks(range(len(studies)))
+    ax.set_yticklabels([SPRETTY[s] for s in studies], fontsize=5.4)
+    ax.set_xlim(-0.6, len(types) - 0.4); ax.set_ylim(len(studies) - 0.4, -0.6)
+    ax.tick_params(length=0)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    cb = ax.figure.colorbar(sc, ax=ax, fraction=0.035, pad=0.02)
+    cb.set_label("Share of the type's cells", fontsize=5.2)
+    cb.ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(1.0, decimals=0))
+    cb.ax.tick_params(labelsize=4.8, length=1.4); cb.outline.set_visible(False)
+    for n in (10, 1000, 30000):
+        ax.scatter([], [], s=4 + 16 * np.log10(n), c="0.7", edgecolor="0.4", lw=0.25,
+                   label=f"{n:,}")
+    _keyfont(ax, loc="lower left", bbox_to_anchor=(0.0, 1.01), ncol=3, title="Cells",
+             title_fontsize=5.2, columnspacing=1.8, handletextpad=0.7, alignment="left")
+
+
+# ================================================================ Figure 4 ===
+
+def panel_malignant_umap(ax, emb):
+    """Malignant cells on their own embedding, coloured by study."""
+    rng = np.random.default_rng(0)
+    e = emb.iloc[rng.permutation(len(emb))]
+    ax.scatter(e["umap1"], e["umap2"], s=0.25, lw=0, rasterized=True,
+               c=e["study"].map(SCOLOR).fillna(GREY).to_numpy())
+    _embedding_axes(ax)
+    present = [s for s in STUDY_ORDER if (emb["study"] == s).any()]
+    hs = [plt.Line2D([], [], marker="o", ls="", ms=3.0, mfc=SCOLOR[s], mec="none") for s in present]
+    _keyfont(ax, handles=hs, labels=[SPRETTY[s] for s in present], loc="upper center",
+             bbox_to_anchor=(0.5, -0.02), ncol=2, columnspacing=0.8,
+             title=f"{len(emb):,} malignant cells, by study", title_fontsize=5.2)
+
+
+def panel_program_multiples(ax, emb, programs):
+    """2 x 2 small multiples of program scores on the malignant embedding."""
+    ax.axis("off")
+    rng = np.random.default_rng(0)
+    e = emb.iloc[rng.permutation(len(emb))[:50000]]
+    for k, (mp, name) in enumerate(programs.items()):
+        r, c = divmod(k, 2)
+        sub = ax.inset_axes([0.02 + c * 0.5, 0.53 - r * 0.5, 0.44, 0.40])
+        v = e[mp].to_numpy()
+        lo, hi = np.nanpercentile(v, [1, 99])
+        order = np.argsort(v)
+        sub.scatter(e["umap1"].to_numpy()[order], e["umap2"].to_numpy()[order], s=0.15, lw=0,
+                    c=v[order], cmap="magma_r", vmin=lo, vmax=hi, rasterized=True)
+        sub.set_xticks([]); sub.set_yticks([])
+        for sp in sub.spines.values():
+            sp.set_visible(False)
+        sub.text(0.5, 1.02, name, transform=sub.transAxes, ha="center", va="bottom", fontsize=5.4)
+    cax = ax.inset_axes([0.30, 0.0, 0.40, 0.025])
+    cb = plt.colorbar(mpl.cm.ScalarMappable(cmap="magma_r"), cax=cax, orientation="horizontal")
+    cb.set_ticks([0, 1]); cb.set_ticklabels(["low", "high"])
+    cb.ax.tick_params(labelsize=4.8, length=1.2); cb.outline.set_visible(False)
+    cb.set_label("Program score (1st–99th percentile)", fontsize=5.0, labelpad=1)
+
+
+# ================================================================ Figure 5 ===
+
+def panel_immune_umap_threaded(ax, adata, xy_all=None, mask=None, key="immune_subset"):
+    from .figures import locator_inset
+    xy = adata.obsm["X_umap_immune"]
+    lab = adata.obs[key].astype(str).to_numpy()
+    order = [l for l in IMM_ORDER if l in set(lab)]
+    for l in order:
+        m = lab == l
+        ax.scatter(xy[m, 0], xy[m, 1], s=0.7, c=IMM_COLOR[l], linewidths=0, rasterized=True)
+    _embedding_axes(ax)
+    for l in order:
+        if l in ("Low_quality", "Plasma", "Platelet"):
+            continue
+        m = lab == l
+        ax.text(np.median(xy[m, 0]), np.median(xy[m, 1]), IMM_PRETTY[l], fontsize=5.2,
+                ha="center", va="center", bbox=dict(fc="white", ec="none", alpha=0.7, pad=0.4))
+    hs = [plt.Line2D([], [], marker="o", ls="", ms=3.2, mfc=IMM_COLOR[l], mec="none") for l in order]
+    _keyfont(ax, handles=hs, labels=[f"{IMM_PRETTY[l]} ({(lab == l).sum():,})" for l in order],
+             loc="center left", bbox_to_anchor=(1.0, 0.5))
+    if xy_all is not None and mask is not None:
+        w = 0.17
+        h = w * ax.get_window_extent().width / max(ax.get_window_extent().height, 1)
+        ins = locator_inset(ax, xy_all, mask, loc=(0.0, 1.0 - min(h, 0.3), w, min(h, 0.3)))
+        ins.set_title("in the atlas", fontsize=5, color="0.45", pad=1.5)
+
+
+def panel_immune_by_sample(ax, adata, min_cells=50, key="immune_subset"):
+    """Immune subset share per sample (samples with >= min_cells immune cells)."""
+    obs = adata.obs[[key, "sample", "study", "disease_state", "material_type"]].astype(str)
+    obs = obs[obs[key] != "Low_quality"]
+    n = obs["sample"].value_counts()
+    keep = n[n >= min_cells].index
+    obs = obs[obs["sample"].isin(keep)]
+    comp = pd.crosstab(obs["sample"], obs[key], normalize="index")
+    comp = comp[[c for c in IMM_ORDER if c in comp.columns]]
+    meta = obs.groupby("sample").first()
+    meta["rank"] = meta["study"].map({s: i for i, s in enumerate(STUDY_ORDER)})
+    meta["myeloid"] = comp[[c for c in ("Monocyte", "Macrophage", "Macrophage_LAM", "cDC2", "pDC")
+                            if c in comp]].sum(1)
+    meta = meta.sort_values(["rank", "myeloid"], ascending=[True, False])
+    comp = comp.loc[meta.index]
+    x = np.arange(len(comp)); bottom = np.zeros(len(comp))
+    for c in comp.columns:
+        ax.bar(x, comp[c], bottom=bottom, width=0.9, color=IMM_COLOR[c], lw=0)
+        bottom += comp[c].to_numpy()
+    ax.set_xlim(-0.6, len(comp) - 0.4); ax.set_ylim(0, 1)
+    ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(1.0, decimals=0))
+    ax.set_ylabel("Share of immune cells")
+    ax.set_xticks([])
+    _despine(ax, keep=("left",))
+    for k, (lab, col, cmap) in enumerate([("Study", "study", SCOLOR),
+                                          ("Disease state", "disease_state", DSTATEC),
+                                          ("Material", "material_type", MATC)]):
+        st = ax.inset_axes([0.0, -0.10 - k * 0.085, 1.0, 0.07], sharex=ax)
+        st.bar(x, 1, width=1.0, lw=0, color=[cmap.get(v, NR) for v in meta[col]])
+        st.set_ylim(0, 1); st.axis("off")
+        st.text(-0.006, 0.5, lab, transform=st.transAxes, ha="right", va="center", fontsize=5.2)
+        if col != "study":   # study colours are keyed in Figure 1
+            # one key per line beneath the strips: keys beside the strips
+            # either squeezed the bars or collided with each other
+            cats = [c for c in cmap if c in set(meta[col])]
+            yk = -0.10 - 3 * 0.085 - 0.03 - (k - 1) * 0.075
+            ax.text(-0.006, yk, lab, transform=ax.transAxes, ha="right", va="center",
+                    fontsize=5.0, color="0.35")
+            ax.add_artist(ax.legend(
+                [Rectangle((0, 0), 1, 1, fc=cmap[c], ec="0.7" if cmap[c] == NR else "none", lw=0.3)
+                 for c in cats],
+                [(DSTATEP if col == "disease_state" else MATP)[c] for c in cats],
+                loc="center left", bbox_to_anchor=(0.0, yk), ncol=len(cats),
+                frameon=False, fontsize=4.8, handletextpad=0.25, columnspacing=1.0,
+                handlelength=0.8, borderpad=0.0))
+    n_imm = n.reindex(meta.index)
+    ax.text(1.0, 1.02, f"{len(meta)} samples with ≥ {min_cells} immune cells "
+                       f"(median {int(n_imm.median())} per sample)",
+            transform=ax.transAxes, ha="right", va="bottom", fontsize=5.0, color="0.4")
+
+
+# ================================================================ Figure 6 ===
+
+def bulk_table(frac_csv, clin_csv):
+    F = pd.read_csv(frac_csv).set_index("sample_id")
+    C = pd.read_csv(clin_csv)
+    meta = C[C.included_in_matrix & C.is_primary_record].set_index("sample_id")
+    D = F.join(meta[["cohort", "os_time_days", "os_event", "efs_time_days", "efs_event"]])
+    for c in ["os_time_days", "os_event", "efs_time_days", "efs_event"]:
+        D[c] = pd.to_numeric(D[c].replace({"not_reported": np.nan, "True": 1, "False": 0,
+                                           True: 1, False: 0}), errors="coerce")
+    return D
+
+
+COHORTC = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860", "#DA8BC3"]
+
+
+def panel_bulk_fractions(ax, D):
+    """Atlas-derived compartment fractions in each bulk cohort."""
+    cohorts = sorted(D["cohort"].dropna().unique())
+    comps = [("malignant", "Malignant"), ("stromal", "Stromal"), ("immune", "Immune")]
+    w = 0.8 / len(cohorts)
+    rng = np.random.default_rng(0)
+    for i, (c, lab) in enumerate(comps):
+        for k, ch in enumerate(cohorts):
+            v = D.loc[D.cohort == ch, c].dropna().to_numpy()
+            xc = i - 0.4 + w * (k + 0.5)
+            ax.scatter(xc + rng.uniform(-w * 0.3, w * 0.3, len(v)), v, s=1.6, lw=0,
+                       color=COHORTC[k % len(COHORTC)], alpha=0.6, rasterized=True)
+            ax.hlines(np.median(v), xc - w * 0.4, xc + w * 0.4, color="0.1", lw=0.9, zorder=3)
+    ax.set_xticks(range(len(comps))); ax.set_xticklabels([l for _, l in comps], fontsize=5.6)
+    ax.set_ylim(0, 1)
+    ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(1.0, decimals=0))
+    ax.set_ylabel("Deconvolved fraction")
+    hs = [plt.Line2D([], [], marker="o", ls="", ms=2.6, mfc=COHORTC[k % len(COHORTC)], mec="none")
+          for k in range(len(cohorts))]
+    _keyfont(ax, handles=hs, labels=[f"{c} (n={int((D.cohort == c).sum())})" for c in cohorts],
+             loc="upper left", bbox_to_anchor=(-0.15, -0.12), ncol=1, fontsize=4.6)
+    _despine(ax)
+
+
+def panel_km(ax, D, cov="malignant", tcol="os_time_days", ecol="os_event",
+             label="malignant fraction"):
+    """Kaplan-Meier by a within-cohort median split; log-rank stratified by cohort."""
+    from statsmodels.duration.survfunc import SurvfuncRight, survdiff
+    S = D[[cov, tcol, ecol, "cohort"]].dropna().copy()
+    S["high"] = S.groupby("cohort")[cov].transform(lambda v: v > v.median())
+    S["years"] = S[tcol] / 365.25
+    cols = {False: "#C44E52", True: "#4C72B0"}
+    for hi in (False, True):
+        s = S[S.high == hi]
+        sf = SurvfuncRight(s["years"].to_numpy(), s[ecol].to_numpy())
+        t = np.r_[0, sf.surv_times, s["years"].max()]
+        p = np.r_[1, sf.surv_prob, sf.surv_prob[-1] if len(sf.surv_prob) else 1]
+        ax.step(t, p, where="post", color=cols[hi], lw=1.0,
+                label=f"{'Above' if hi else 'Below'} cohort median (n={len(s)}, "
+                      f"{int(s[ecol].sum())} events)")
+        cens = s[s[ecol] == 0]["years"].to_numpy()
+        if len(cens):
+            yc = np.interp(cens, t, p, right=p[-1])
+            ax.plot(cens, yc, "|", ms=2.6, mew=0.5, color=cols[hi])
+    _, pval = survdiff(S["years"].to_numpy(), S[ecol].to_numpy(), S["high"].astype(int).to_numpy(),
+                       strata=S["cohort"].to_numpy())
+    ax.set_ylim(0, 1.03); ax.set_xlim(0, None)
+    ax.set_xlabel("Years from diagnosis"); ax.set_ylabel("Overall survival")
+    ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(1.0, decimals=0))
+    _keyfont(ax, loc="lower left", title=f"Atlas-derived {label}", title_fontsize=5.0,
+             fontsize=4.8, alignment="left")
+    ax.text(0.98, 0.98, f"log-rank p = {pval:.3f}\n(stratified by cohort)",
+            transform=ax.transAxes, ha="right", va="top", fontsize=5.0, color="0.3")
+    _despine(ax)
+    return pval, len(S), int(S[ecol].sum())
+
+
+def panel_forest(ax, csv):
+    """Stage-06 forest plot with ticks thinned for a narrow slot."""
+    from .figures import panel_bulk_survival
+    panel_bulk_survival(ax, csv)
+    ax.set_xticks([0.6, 0.8, 1.0, 1.6]); ax.set_xticklabels(["0.6", "0.8", "1.0", "1.6"], fontsize=5.2)
+    ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
+
+
+def marker_table(atlas_path) -> pd.DataFrame:
+    """Fraction expressing and mean log-normalized expression of the marker
+    panel (``MARKER_GROUPS``) per cell type, for :func:`panel_marker_dotplot`."""
+    import anndata as ad
+    import scipy.sparse as sp
+
+    genes = [g for _, grp in MARKER_GROUPS for g in grp]
+    B = ad.read_h5ad(atlas_path, backed="r")
+    present = [g for g in genes if g in B.var_names]
+    sub = B[:, present].to_memory()
+    B.file.close()
+    X = sub.layers["lognorm"]
+    X = X.tocsr() if sp.issparse(X) else X
+    ct = sub.obs["cell_type"].astype(str).to_numpy()
+    rows = []
+    for c in pd.unique(ct):
+        m = ct == c
+        Xi = X[m]
+        frac = np.asarray((Xi > 0).sum(0)).ravel() / int(m.sum())
+        mean = np.asarray(Xi.mean(0)).ravel()
+        for g, fr, mn in zip(present, frac, mean):
+            rows.append(dict(cell_type=c, gene=g, frac_expressing=float(fr),
+                             mean_lognorm=float(mn)))
+    return pd.DataFrame(rows)

@@ -45,9 +45,35 @@ Each stage writes `logs/run_<stage>_<timestamp>.json`. A stage that fails still
 writes its manifest with `status: "error"` and the exception, so a partial run is
 diagnosable from `logs/` rather than from terminal scrollback.
 
-Stages 03–05 (integration, annotation, discovery) are committed as they are
-executed — see `src/pipeline/README.md`. Nothing in `src/` is code that has never
-run.
+Later stages run individually, in the order listed in
+`src/pipeline/README.md` (03, 03b on GPU, 04, 05, 07–13). The figure set is
+built last:
+
+```bash
+python src/pipeline/14_figures.py   # -> results/figures/  (see docs/09_figures.md)
+```
+
+### Inputs no stage produces yet
+
+The following files are read by a stage but written by none in `src/`. They
+came from analyses run outside the committed pipeline. Until each has a
+producing stage, a clean checkout cannot regenerate the figures that use them
+or the stages listed:
+
+| file | read by | analysis it records |
+|---|---|---|
+| `results/tables/v5_embedding_benchmark.csv` | 14 (Fig 2A) | aggregate scIB scores per embedding |
+| `results/tables/v5_elbo_{sample,study}_{train,val}.csv` | 14 (Fig S3A) | scVI training history |
+| `results/tables/v5_depositor_labels.csv` | 03, 14 (Fig 2C, S5D) | harmonized depositor annotations |
+| `results/tables/v5_cnv_auc_per_sample.csv` | 14 (Fig 4A, S5B) | first-release genome-wide CNV AUC |
+| `results/tables/v6_cnv_arm_auc.csv` | 14 (Fig S5E) | arm-level CNV AUC |
+| `results/tables/scpca_library_profile.csv` | 14 (Fig S2A) | ScPCA per-library profile |
+| `data/interim/metaprograms_relative.pkl` | 14 (Fig 4C) | per-sample NMF metaprograms |
+| `results/tables/v6_metaprogram_occupancy.csv` | 12, 14 (Fig 4E) | metaprogram occupancy by study |
+| `results/tables/v6_falsification.csv` | 14 (Fig 4F) | program vs technical-covariate correlations |
+| `results/tables/v6_immune_labels.csv` | 11 | immune re-clustering labels |
+| `data/interim/immune_subset.h5ad` | 14 (Fig 5) | immune sub-object |
+| `data/interim/caf_scored.h5ad` | 07 | CAF-state scoring object |
 
 ## 4 · GPU training
 

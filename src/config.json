@@ -114,7 +114,14 @@
   "processed": "data/processed",
   "atlas_out": "data/processed/EWSAtlas_v5.h5ad",
   "metadata": "data/metadata",
-  "covariates": "data/metadata/ews_covariates_harmonized.csv"
+  "covariates": "data/metadata/ews_covariates_harmonized.csv",
+  "tables": "results/tables",
+  "figures": "results/figures",
+  "figure_panels": "data/interim/figure_panels",
+  "immune_subset": "data/interim/immune_subset.h5ad",
+  "metaprograms": "data/interim/metaprograms_relative.pkl",
+  "malignant_embedding": "data/interim/malignant_embedding.parquet",
+  "bulk_clinical": "data/external/bulk_cohorts/ews_bulk_clinical.csv"
  },
  "compute": {
   "provider": "byoc:modal",
@@ -170,5 +177,23 @@
    "10x_snRNA",
    "CELseq2_scRNA"
   ]
+ },
+ "figures": {
+  "_note": "Publication figure set (stage 14). Geometry follows Cell Press / Nature double-column width; panel letters bold uppercase.",
+  "width_mm": 180.0,
+  "dpi": 300,
+  "gutter_mm": 4.0,
+  "letter_pt": 10.0,
+  "letter_gap_mm": 1.2,
+  "letter_band_mm": 3.8,
+  "malignant_embedding_n_neighbors": 15,
+  "malignant_programs": {
+   "MP1": "Cell cycle (MP1)",
+   "MP3": "Hypoxia-like (MP3)",
+   "MP7": "Mesenchymal (MP7)",
+   "MP28": "NR0B1 / PRKCB (MP28)"
+  },
+  "loso_min_heldout_cells": 20,
+  "immune_min_cells_per_sample": 50
  }
 }
