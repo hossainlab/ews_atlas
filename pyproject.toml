@@ -29,6 +29,7 @@ dependencies = [
   "statsmodels>=0.14",
   "h5py>=3.11",
   "pyarrow>=16",
+  "pypdf>=4.0",
 ]
 
 [project.optional-dependencies]
