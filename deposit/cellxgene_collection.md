@@ -26,7 +26,53 @@ is the intersection of six per-study annotations (`docs/03_gene_space.md`), so
 the unmeasured genes were never in the matrix to begin with and cannot be
 restored with `feature_is_filtered`. This is a SHOULD, not a MUST.
 
-## Collection form
+## The process, per the official documentation
+
+Source: <https://cellxgene.cziscience.com/docs/032__Contribute%20and%20Publish%20Data>
+
+This is **not** a self-service upload. The documented order is:
+
+1. Review the Data Eligibility criteria.
+2. **Contact CZI first** with a description of the data, to confirm they will
+   accept it.
+3. Once confirmed, send files prepared to the submission requirements.
+4. **CZI uploads to a private Collection** where you review it.
+5. Revise as needed.
+6. The data are made openly available when you are ready.
+
+So the collection metadata below is what goes **in the email**, not into a form
+you fill in yourself, and nothing becomes public until you say so.
+
+### Eligibility, checked against the criteria
+
+| criterion | EWSAtlas |
+|---|---|
+| not a drug screen | passes |
+| species on the supported list | human only (`NCBITaxon:9606`) |
+| assays on the accepted list | all three listed: `EFO:0009922` 10x 3' v3, `EFO:0009899` 10x 3' v2, `EFO:0010010` CEL-seq2 |
+| max 50 GB per dataset | 1.10 GB |
+| under 4.3M cells (else not visualized in Explorer) | 138,353 cells |
+| single h5ad in **AnnData 0.10 format** | yes — and this is why stage 13 forces pre-0.11 encodings |
+
+### Data Submission Policy — what you are agreeing to
+
+Submitting asserts that you have authority to let CZI display, distribute and
+create derivative works from the data; that **you** are responsible for ensuring
+the data are not identifiable and for removing direct personal identifiers from
+the metadata; that published data are available under **CC-BY 4.0**; and that
+the Collection details, including your name and contact information, become
+public. Published data can be deleted later, which does not undo prior
+downloads.
+
+De-identification was checked on the deposit object. Every identifier column
+holds a study-internal code that is already public in the source deposit —
+`donor_id` and `patient` are three-digit codes, `src_participant_id` holds the
+SJEWS sample codes, `sample` and `src_submitter_id` combine those with a
+suffix, and `age_years` is an integer year. No name, date, location or
+free-text clinical note is carried. `src_submitter` retains one depositor
+handle from the source metadata and may be dropped if you prefer.
+
+## Collection metadata for the email
 
 **Name**
 EWSAtlas: a harmonized single-cell and single-nucleus reference for Ewing sarcoma
@@ -127,28 +173,42 @@ and the other `feature_*` label columns; `uns` `schema_version` and
 `schema_reference`. The atlas values survive as `obs['cell_type_atlas']`,
 `obs['assay_atlas']`, `obs['sex_reported']` and `var['gene_symbol_atlas']`.
 
-## Submission email
+## Step-2 email: ask whether the data will be accepted
+
+This is step 2 of the process: a description sent to ask whether the data will
+be accepted. Do not attach the h5ad yet.
 
 > To: cellxgene@chanzuckerberg.com
-> Subject: Collection submission — EWSAtlas, a harmonized single-cell reference for Ewing sarcoma
+> Subject: Proposed contribution — EWSAtlas, a harmonized single-cell reference for Ewing sarcoma
 >
 > Dear CELLxGENE curation team,
 >
-> I would like to submit a dataset to CZ CELLxGENE Discover.
+> I would like to confirm whether you would accept a dataset for CZ CELLxGENE
+> Discover.
 >
 > Title: EWSAtlas: a harmonized single-cell and single-nucleus reference for
 > Ewing sarcoma
 > Description: [the Description above]
 > Contact: Md. Jubayer Hossain, contact.jubayerhossain@gmail.com
-> Publication DOI: not yet posted; archived release at
+> Publication/preprint DOI: not yet posted; archived release at
 > https://doi.org/10.5281/zenodo.23622732
+> URLs: code at https://github.com/hossainlab/ews_atlas
+> Consortia: none
 >
-> The H5AD is 138,353 cells x 16,285 genes (1.10 GB) and passes
-> cellxgene-schema 7.1.2 validation. Two points I would like your guidance on
-> are listed as items 2 and 4 in deposit/cellxgene_collection.md: the
-> tissue_type value for orthotopic patient-derived xenografts, and the use of
-> the generic UBERON:0000479 term for cells whose source deposit reports no
-> anatomical site.
+> The dataset is one h5ad of 138,353 cells x 16,285 genes (1.10 GB), human
+> only, assays 10x 3' v2, 10x 3' v3 and CEL-seq2, all on the accepted list. It
+> is an integration of six already-published cohorts, so is_primary_data is
+> False throughout. It passes cellxgene-schema 7.1.2 with is_valid=True; the
+> only warning is that var has 16,285 rows, because the gene space is the
+> intersection of the six source annotations and the unmeasured genes were
+> never in the matrix.
+>
+> Two curation points I would value your guidance on before sending files:
+> first, the tissue_type value for orthotopic patient-derived xenografts
+> (56,267 cells), which fit none of tissue / organoid / primary cell culture /
+> cell line exactly and are currently 'tissue'; second, the use of the generic
+> UBERON:0000479 for 14,757 cells whose source deposit reports no anatomical
+> site, since 'unknown' is not permitted when tissue_type is 'tissue'.
 >
 > Kind regards,
 > Md. Jubayer Hossain
