@@ -8,7 +8,7 @@ Outputs: `data/processed/EWSAtlas_v5_cellxgene.h5ad`, `deposit/`
 | artefact | path | state |
 |---|---|---|
 | analysis object | `data/processed/EWSAtlas_v5.h5ad` | ready (138,353 x 16,622) |
-| CELLxGENE deposit object | `data/processed/EWSAtlas_v5_cellxgene.h5ad` | ready with gaps below (138,353 x 16,286, 2.46 GB) |
+| CELLxGENE deposit object | `data/processed/EWSAtlas_v5_cellxgene.h5ad` | **passes cellxgene-schema 7.1.2** (138,353 x 16,285, 1.10 GB) |
 | trained scVI model | `data/interim/scvi_model_v5/model.pt` | ready (377 epochs, early stopping) — see the caveat below |
 | query-mapping utility | `src/map_query_to_ewsatlas.py` | repointed at v5 and at the model's own latent |
 | Zenodo metadata | `deposit/zenodo.json` | needs creators and license |
@@ -36,36 +36,72 @@ neighbourhood overlap and should not read it as a defect in either run.
 
 ## The deposit object
 
-Gene identifiers are Ensembl, fetched from Ensembl REST: 16,286 of 16,622 symbols
-(98.0%) resolve and 336 are dropped from the deposit object only — they remain in
-the analysis object. `X` is log-normalized, `raw.X` is counts, as the schema
-requires.
+Gene identifiers are Ensembl, fetched from Ensembl REST: 16,286 of 16,622
+symbols (98.0%) resolve, and one of those, `ENSG00000285101`, is absent from the
+GENCODE reference the validator uses, leaving **16,285** genes. All 337 dropped
+symbols remain in the analysis object. `X` is log-normalized and `raw.X` is
+counts, both `float32`, as the schema requires.
 
 Ontology terms were resolved against EBI OLS and carry the label OLS returned;
 none was written from memory. Cell types map to CL, assay to EFO by recorded
 chemistry, sex to PATO, disease to MONDO (`MONDO:0012817` Ewing sarcoma;
 `MONDO:0040679` urothelial carcinoma for the control patient; `PATO:0000461`
-normal for tumour-adjacent bladder), organism to `NCBITaxon:9606`.
+normal for tumour-adjacent bladder); organism is `NCBITaxon:9606`, carried in
+`uns` as schema 7 requires.
 `suspension_type` is `nucleus` for the Waltner libraries and `cell` elsewhere,
 and `is_primary_data` is `False` throughout because all six studies are published
 elsewhere.
 
-### Four fields still need curation
+### Remaining unknown fields
 
-These are set to `unknown`, which CELLxGENE will reject for some of them. Filling
-them requires decisions that belong to the depositors, not to an inference:
+Three remain `unknown`, which schema 7 permits for these fields; the fourth,
+`tissue_ontology_term_id`, no longer may be and has been resolved.
 
 1. `development_stage_ontology_term_id` — 138,353 of 138,353. Needs one HsapDv
    term per age; 42,230 cells carry no age at all (the same 42,230 that carry no
-   sex — deposits that omit one omit the other).
+   sex — deposits that omit one omit the other). This is the single largest
+   available improvement to the record.
 2. `self_reported_ethnicity_ontology_term_id` — 138,353 of 138,353. No source
    deposit reports it and it must not be inferred.
-3. `tissue_ontology_term_id` — 44,454 of 138,353. Bone sites, lung, bladder and
-   lymph node resolve; free-text sites (chest wall, axilla, paraspinal, ileum,
-   cutaneous, pleural mass, brain) need a curator to pick the UBERON term.
-4. `sex_ontology_term_id` — 42,230 of 138,353, and `cell_type_ontology_term_id`
+3. `sex_ontology_term_id` — 42,230 of 138,353, and `cell_type_ontology_term_id`
    for the 2,809 `Unassigned` cells. Both are genuinely missing rather than
    unmapped.
+4. `tissue_ontology_term_id` — resolved for all cells. Circulating-tumour-cell
+   and blood libraries map to blood rather than to the primary site, because the
+   field describes what was sampled; chest wall and thorax to the thoracic
+   segment of the trunk, plus axilla, ileum and brain; and 14,757 cells whose
+   deposit reports no site carry the generic ancestor `UBERON:0000479`
+   ("tissue"). Every term was checked against the ontology shipped with
+   cellxgene-schema before use.
+
+## Schema 7 validation
+
+The deposit object passes `cellxgene-schema` 7.1.2 with `is_valid=True`
+(138,353 x 16,285, 1.10 GB). Getting there required six changes beyond the
+original export, all now in stage 13 and each one a rule that is easy to miss:
+
+1. Discover annotates the human-readable mirror of every ontology field and the
+   `feature_*` columns itself; submitting a copy of `assay`, `cell_type`, `sex`
+   or `feature_name` fails validation. They are dropped and preserved as
+   `cell_type_atlas`, `assay_atlas`, `sex_reported` and `gene_symbol_atlas`.
+2. Schema 7 moved `organism_ontology_term_id` from `obs` to `uns`.
+3. `var['feature_is_filtered']` is required; it is `False` throughout, because
+   excluded genes were removed from the matrix rather than zeroed in it.
+4. Both matrices must be `float32`; the analysis object holds int32 counts and a
+   float64 normalized layer.
+5. One Ensembl identifier the symbol map resolves, `ENSG00000285101`, is absent
+   from the GENCODE reference the validator uses and is dropped.
+6. `cellxgene-schema` pins an older anndata than this pipeline writes with, and
+   that reader cannot open the nullable encodings anndata 0.13 emits by default.
+   The stage sets `allow_write_nullable_strings = False`, casts nullable columns
+   and strips `None` from `uns`. A file the validator cannot open cannot be
+   ingested, so this is a blocker rather than a nicety.
+
+Dropping the duplicated `layers` (`counts` is `raw.X`, `lognorm` is `X`) and
+the float32 cast together took the object from 2.46 GB to 1.10 GB.
+
+The collection form, the submission email and the curation decisions a reviewer
+should see are in `deposit/cellxgene_collection.md`.
 
 ## Two steps that need your account
 
